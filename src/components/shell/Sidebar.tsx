@@ -14,7 +14,7 @@ function isActive(pathname: string, href: string): boolean {
 export function Sidebar() {
   const pathname = usePathname();
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-surface md:flex">
+    <aside className="no-print hidden w-60 shrink-0 flex-col border-r border-line bg-surface md:flex">
       <div className="flex h-16 items-center px-5">
         <Link href="/" aria-label="HorsePowr home">
           <LogoWordmark />

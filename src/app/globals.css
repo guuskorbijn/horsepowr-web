@@ -169,6 +169,45 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Print: a tidy, analyst-ready handout from the browser's print-to-PDF. */
+.print-only {
+  display: none;
+}
+
+@media print {
+  /* Force a light, ink-friendly render regardless of the on-screen theme. */
+  html.dark {
+    color-scheme: light;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block;
+  }
+  aside,
+  header.sticky {
+    display: none !important;
+  }
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  /* Flatten elevation so cards read cleanly on paper; keep borders. */
+  .shadow-\[var\(--shadow-card\)\],
+  .shadow-\[var\(--shadow-raised\)\] {
+    box-shadow: none !important;
+  }
+  /* Avoid splitting a card across pages where possible. */
+  section,
+  .rounded-lg {
+    break-inside: avoid;
+  }
+  @page {
+    margin: 16mm;
+  }
+}
+
 /* Respect reduce-motion — drop to simple/no transitions */
 @media (prefers-reduced-motion: reduce) {
   *,

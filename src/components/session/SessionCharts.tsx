@@ -75,7 +75,7 @@ export function SessionCharts({
         title="Session charts"
         subtitle="Scroll to zoom, drag to pan, double-click to reset. One shared time axis."
         action={
-          <div className="flex items-center gap-2">
+          <div className="no-print flex items-center gap-2">
             {gaitBands.length > 0 ? (
               <Button
                 variant={showGaits ? 'secondary' : 'ghost'}

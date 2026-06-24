@@ -11,7 +11,10 @@ import { SessionSummaryCard } from '@/components/session/SessionSummaryCard';
 import { RecordingQualityCard } from '@/components/session/RecordingQualityCard';
 import { ZoneDistribution } from '@/components/session/ZoneDistribution';
 import { AnnotationForm } from '@/components/session/AnnotationForm';
+import { ExportBar } from '@/components/session/ExportBar';
+import { LogoWordmark } from '@/components/brand/Logo';
 import { annotationsFromSession } from '@/data/annotationRepository';
+import { sessionSummaryToCsv, exportSlug } from '@/services/csvExport';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { requireSessionContext } from '@/lib/session';
 import { loadSessionView, type SessionView } from '@/services/sessionViewService';
@@ -55,23 +58,39 @@ export default async function SessionDetailPage({
 
   const { view } = result;
   const { session, horse } = view;
+  const slug = exportSlug(horse.name, session.started_at);
+  const summaryCsv = sessionSummaryToCsv(view);
 
   return (
     <>
       <BackLink />
+
+      {/* Print-only masthead (the sidebar logo is hidden when printing). */}
+      <div className="print-only mb-4">
+        <LogoWordmark />
+      </div>
+
       <PageHeader
         title={horse.name}
         description={formatDateTime(session.started_at)}
         action={
-          <div className="flex items-center gap-2">
-            {session.training_type ? (
-              <StatusPill tone="info">{TRAINING_TYPE_LABELS[session.training_type]}</StatusPill>
-            ) : null}
-            {session.location_name ? (
-              <StatusPill tone="muted" icon={<MapPin size={13} />}>
-                {session.location_name}
-              </StatusPill>
-            ) : null}
+          <div className="flex flex-col items-end gap-2">
+            <ExportBar
+              sessionId={session.id}
+              startedAt={session.started_at}
+              slug={slug}
+              summaryCsv={summaryCsv}
+            />
+            <div className="flex items-center gap-2">
+              {session.training_type ? (
+                <StatusPill tone="info">{TRAINING_TYPE_LABELS[session.training_type]}</StatusPill>
+              ) : null}
+              {session.location_name ? (
+                <StatusPill tone="muted" icon={<MapPin size={13} />}>
+                  {session.location_name}
+                </StatusPill>
+              ) : null}
+            </div>
           </div>
         }
       />
