@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { TopBar } from '@/components/shell/TopBar';
 import { OrgProvider } from '@/components/shell/OrgContext';
+import { SessionProvider } from '@/components/shell/SessionContext';
 import type { SessionUser } from '@/components/shell/UserMenu';
 import type { LocationRow, OrganizationRow } from '@/types/db';
 
@@ -18,14 +19,16 @@ export function AppShell({
   children: ReactNode;
 }) {
   return (
-    <OrgProvider org={org} locations={locations}>
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <TopBar user={user} />
-          <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">{children}</main>
+    <SessionProvider user={user}>
+      <OrgProvider org={org} locations={locations}>
+        <div className="flex min-h-screen">
+          <Sidebar />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <TopBar user={user} />
+            <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">{children}</main>
+          </div>
         </div>
-      </div>
-    </OrgProvider>
+      </OrgProvider>
+    </SessionProvider>
   );
 }
