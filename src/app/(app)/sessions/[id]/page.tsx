@@ -10,6 +10,8 @@ import { RouteMap } from '@/components/session/RouteMap';
 import { SessionSummaryCard } from '@/components/session/SessionSummaryCard';
 import { RecordingQualityCard } from '@/components/session/RecordingQualityCard';
 import { ZoneDistribution } from '@/components/session/ZoneDistribution';
+import { AnnotationForm } from '@/components/session/AnnotationForm';
+import { annotationsFromSession } from '@/data/annotationRepository';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { requireSessionContext } from '@/lib/session';
 import { loadSessionView, type SessionView } from '@/services/sessionViewService';
@@ -98,6 +100,8 @@ export default async function SessionDetailPage({
             <RecordingQualityCard quality={view.quality} />
           </div>
         </div>
+
+        <AnnotationForm sessionId={session.id} initial={annotationsFromSession(session)} />
       </div>
     </>
   );
