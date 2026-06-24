@@ -1,26 +1,180 @@
 @import "tailwindcss";
 
+/*
+ * HorsePowr "Vital" theme. Semantic role variables live on :root (light) and
+ * .dark (dark). Components reference SEMANTIC roles via Tailwind utilities
+ * (bg-surface, text-secondary, border-line, …) — never raw ramp steps inline.
+ * Raw hex values are transcribed from src/theme/tokens.ts (the canonical source).
+ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surfaces — ~60% neutral */
+  --app: #f2f5f4;          /* Mist — app background */
+  --surface: #ffffff;       /* cards */
+  --surface-muted: #e6eceb; /* muted panels / hover */
+  --surface-sunken: #f2f5f4;
+
+  /* Text */
+  --text-primary: #15252b;
+  --text-secondary: #5c706e;
+  --text-tertiary: #7e9290;
+  --text-inverse: #ffffff;
+
+  /* Brand — 30% blue */
+  --primary: #0058a2;
+  --primary-hover: #004886;
+  --primary-soft: #e6f0f9;   /* blue-50 tint */
+  --on-primary: #ffffff;
+
+  /* Accent — 10% coral, one element per screen */
+  --accent: #ff7a59;
+  --on-accent: #ffffff;
+
+  /* Lines */
+  --line: #e6eceb;
+  --line-strong: #cdd7d5;
+
+  /* Semantic feedback */
+  --success: #1fa971;
+  --warning: #f2a20c;
+  --danger: #e23d3d;
+  --info: #2e7dd1;
+
+  /* Status-pill tints (muted bg + same-family dark text) */
+  --pill-info-bg: #e6f0f9;
+  --pill-info-text: #003a6c;
+  --pill-muted-bg: #e6eceb;
+  --pill-muted-text: #43534f;
+  --pill-success-bg: #e7f6ef;
+  --pill-success-text: #0f6b48;
+  --pill-warning-bg: #fdf1da;
+  --pill-warning-text: #8a5c06;
+
+  --shadow-card: 0 1px 2px rgba(21, 37, 43, 0.06), 0 1px 3px rgba(21, 37, 43, 0.08);
+  --shadow-raised: 0 4px 12px rgba(21, 37, 43, 0.12), 0 2px 4px rgba(21, 37, 43, 0.08);
+}
+
+.dark {
+  --app: #15252b;
+  --surface: #1d2c30;
+  --surface-muted: #2c3b3a;
+  --surface-sunken: #122024;
+
+  --text-primary: #f2f5f4;
+  --text-secondary: #aab8b6;
+  --text-tertiary: #7e9290;
+  --text-inverse: #15252b;
+
+  --primary: #2d7cbf;        /* lighter blue holds contrast on dark surface */
+  --primary-hover: #5b9cd1;
+  --primary-soft: #002b50;
+  --on-primary: #ffffff;
+
+  --accent: #ff8a66;
+  --on-accent: #15252b;
+
+  --line: #2c3b3a;
+  --line-strong: #43534f;
+
+  --success: #3cc78f;
+  --warning: #f2b53c;
+  --danger: #ef6b6b;
+  --info: #5b9cd1;
+
+  --pill-info-bg: #002b50;
+  --pill-info-text: #c2dbef;
+  --pill-muted-bg: #2c3b3a;
+  --pill-muted-text: #cdd7d5;
+  --pill-success-bg: #0d3a2a;
+  --pill-success-text: #7fe0bb;
+  --pill-warning-bg: #3a2c0a;
+  --pill-warning-text: #f2c14e;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-raised: 0 4px 14px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Semantic surface + text roles -> Tailwind utilities */
+  --color-app: var(--app);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-sunken: var(--surface-sunken);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-inverse: var(--text-inverse);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-on-primary: var(--on-primary);
+
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  /* HR-zone palette — same colour in both themes (colour always means effort) */
+  --color-z1: #5b9cd1;
+  --color-z2: #0058a2;
+  --color-z3: #f2c14e;
+  --color-z4: #ff7a59;
+  --color-z5: #e23d3d;
+
+  /* Gait palette — distinct from the HR ramp */
+  --color-gait-inactive: #aab8b6;
+  --color-gait-walk: #5b9cd1;
+  --color-gait-trot: #1fa971;
+  --color-gait-canter: #7c5cc4;
+
+  /* Fonts (wired from next/font in layout.tsx) */
+  --font-display: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* Radius — Vital is rounded */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--line);
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--app);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Respect reduce-motion — drop to simple/no transitions */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
