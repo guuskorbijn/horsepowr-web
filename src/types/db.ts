@@ -19,7 +19,7 @@ export type TrainingType =
   | 'conditioning'
   | 'other';
 
-export interface OrganizationRow {
+export type OrganizationRow = {
   id: string;
   name: string;
   location: string | null;
@@ -27,7 +27,7 @@ export interface OrganizationRow {
   created_at: string;
 }
 
-export interface LocationRow {
+export type LocationRow = {
   id: string;
   org_id: string;
   name: string;
@@ -35,7 +35,7 @@ export interface LocationRow {
   created_at: string;
 }
 
-export interface ProfileRow {
+export type ProfileRow = {
   id: string;
   org_id: string | null;
   role: UserRole;
@@ -44,7 +44,7 @@ export interface ProfileRow {
   created_at: string;
 }
 
-export interface HorseRow {
+export type HorseRow = {
   id: string;
   org_id: string;
   location_id: string | null;
@@ -56,7 +56,7 @@ export interface HorseRow {
   created_at: string;
 }
 
-export interface SessionRow {
+export type SessionRow = {
   id: string;
   horse_id: string;
   started_at: string;
@@ -74,7 +74,7 @@ export interface SessionRow {
   injury_recovery: boolean;
 }
 
-export interface MeasurementRow {
+export type MeasurementRow = {
   id: string;
   session_id: string;
   timestamp: string;
@@ -86,7 +86,7 @@ export interface MeasurementRow {
   lng: number | null;
 }
 
-export interface SessionGaitSegmentsRow {
+export type SessionGaitSegmentsRow = {
   session_id: string;
   segments: GaitSegmentJson[];
   classifier_kind: string;
@@ -96,69 +96,74 @@ export interface SessionGaitSegmentsRow {
 
 /** Shape stored in session_gait_segments.segments (jsonb). startTs/endTs are ms
  *  offsets from sessions.started_at. Mirrors RN src/types/gait.ts GaitSegment. */
-export interface GaitSegmentJson {
+export type GaitSegmentJson = {
   gait: 'inactive' | 'walk' | 'trot' | 'canter';
   startTs: number;
   endTs: number;
 }
 
-type Identity<T> = T;
-type InsertOf<T, Optional extends keyof T> = Identity<
-  Omit<T, Optional> & Partial<Pick<T, Optional>>
->;
+type InsertOf<T, Optional extends keyof T> = Omit<T, Optional> & Partial<Pick<T, Optional>>;
+
+/** Per-table shape matching `supabase gen types` output (incl. Relationships,
+ *  which the typed client requires — without it, Insert/Update degrade to never). */
+interface TableDef<Row, Insert> {
+  Row: Row;
+  Insert: Insert;
+  Update: Partial<Row>;
+  Relationships: [];
+}
 
 export interface Database {
   public: {
     Tables: {
-      organizations: {
-        Row: OrganizationRow;
-        Insert: InsertOf<OrganizationRow, 'id' | 'created_at' | 'location' | 'country'>;
-        Update: Partial<OrganizationRow>;
-      };
-      locations: {
-        Row: LocationRow;
-        Insert: InsertOf<LocationRow, 'id' | 'created_at' | 'country'>;
-        Update: Partial<LocationRow>;
-      };
-      profiles: {
-        Row: ProfileRow;
-        Insert: InsertOf<ProfileRow, 'created_at' | 'org_id' | 'name' | 'email' | 'role'>;
-        Update: Partial<ProfileRow>;
-      };
-      horses: {
-        Row: HorseRow;
-        Insert: InsertOf<
+      organizations: TableDef<
+        OrganizationRow,
+        InsertOf<OrganizationRow, 'id' | 'created_at' | 'location' | 'country'>
+      >;
+      locations: TableDef<
+        LocationRow,
+        InsertOf<LocationRow, 'id' | 'created_at' | 'country'>
+      >;
+      profiles: TableDef<
+        ProfileRow,
+        InsertOf<ProfileRow, 'created_at' | 'org_id' | 'name' | 'email' | 'role'>
+      >;
+      horses: TableDef<
+        HorseRow,
+        InsertOf<
           HorseRow,
           'id' | 'created_at' | 'location_id' | 'discipline' | 'photo_url' | 'active' | 'max_hr'
-        >;
-        Update: Partial<HorseRow>;
-      };
-      sessions: {
-        Row: SessionRow;
-        Insert: InsertOf<
+        >
+      >;
+      sessions: TableDef<
+        SessionRow,
+        InsertOf<
           SessionRow,
           | 'id' | 'created_at' | 'ended_at' | 'notes' | 'synced' | 'training_type'
           | 'environment' | 'location_name' | 'physical_rating' | 'mental_rating'
           | 'injury_concern' | 'injury_recovery'
-        >;
-        Update: Partial<SessionRow>;
-      };
-      measurements: {
-        Row: MeasurementRow;
-        Insert: InsertOf<
+        >
+      >;
+      measurements: TableDef<
+        MeasurementRow,
+        InsertOf<
           MeasurementRow,
           'id' | 'hr_bpm' | 'rr_ms' | 'speed_ms' | 'altitude_m' | 'lat' | 'lng'
-        >;
-        Update: Partial<MeasurementRow>;
-      };
-      session_gait_segments: {
-        Row: SessionGaitSegmentsRow;
-        Insert: InsertOf<
+        >
+      >;
+      session_gait_segments: TableDef<
+        SessionGaitSegmentsRow,
+        InsertOf<
           SessionGaitSegmentsRow,
           'classifier_kind' | 'classifier_version' | 'computed_at'
-        >;
-        Update: Partial<SessionGaitSegmentsRow>;
-      };
+        >
+      >;
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: {
+      user_role: UserRole;
+    };
+    CompositeTypes: Record<string, never>;
   };
 }
