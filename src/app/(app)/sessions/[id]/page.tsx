@@ -1,0 +1,115 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { ArrowLeft, MapPin } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { ErrorState } from '@/components/ui/states';
+import { StatusPill } from '@/components/ui/StatusPill';
+import { SessionMetricTiles } from '@/components/session/SessionMetricTiles';
+import { SessionCharts } from '@/components/session/SessionCharts';
+import { RouteMap } from '@/components/session/RouteMap';
+import { SessionSummaryCard } from '@/components/session/SessionSummaryCard';
+import { RecordingQualityCard } from '@/components/session/RecordingQualityCard';
+import { ZoneDistribution } from '@/components/session/ZoneDistribution';
+import { getServerSupabase } from '@/lib/supabase/server';
+import { requireSessionContext } from '@/lib/session';
+import { loadSessionView, type SessionView } from '@/services/sessionViewService';
+import { TRAINING_TYPE_LABELS } from '@/services/labels';
+import { formatDateTime } from '@/services/format';
+
+type LoadResult =
+  | { status: 'ok'; view: SessionView }
+  | { status: 'not-found' }
+  | { status: 'error' };
+
+async function load(id: string): Promise<LoadResult> {
+  await requireSessionContext();
+  try {
+    const supa = await getServerSupabase();
+    const view = await loadSessionView(supa, id);
+    if (!view) return { status: 'not-found' };
+    return { status: 'ok', view };
+  } catch {
+    return { status: 'error' };
+  }
+}
+
+export default async function SessionDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const result = await load(id);
+
+  if (result.status === 'not-found') notFound();
+  if (result.status === 'error') {
+    return (
+      <>
+        <BackLink />
+        <ErrorState description="Could not load this session. Try again." />
+      </>
+    );
+  }
+
+  const { view } = result;
+  const { session, horse } = view;
+
+  return (
+    <>
+      <BackLink />
+      <PageHeader
+        title={horse.name}
+        description={formatDateTime(session.started_at)}
+        action={
+          <div className="flex items-center gap-2">
+            {session.training_type ? (
+              <StatusPill tone="info">{TRAINING_TYPE_LABELS[session.training_type]}</StatusPill>
+            ) : null}
+            {session.location_name ? (
+              <StatusPill tone="muted" icon={<MapPin size={13} />}>
+                {session.location_name}
+              </StatusPill>
+            ) : null}
+          </div>
+        }
+      />
+
+      <div className="space-y-6">
+        <SessionMetricTiles metrics={view.metrics} />
+
+        <SessionSummaryCard summary={view.summary} />
+
+        <SessionCharts
+          hr={view.hr}
+          speed={view.speed}
+          altitude={view.altitude}
+          gaitBands={view.gaitBands}
+          maxHr={view.maxHr}
+        />
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="space-y-6">
+            {view.route.length > 1 ? (
+              <RouteMap route={view.route} />
+            ) : null}
+            <ZoneDistribution zones={view.zones} />
+          </div>
+          <div className="space-y-6">
+            <RecordingQualityCard quality={view.quality} />
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function BackLink() {
+  return (
+    <Link
+      href="/sessions"
+      className="mb-4 inline-flex items-center gap-1.5 text-[13px] text-text-secondary hover:text-text-primary"
+    >
+      <ArrowLeft size={15} /> Sessions
+    </Link>
+  );
+}
