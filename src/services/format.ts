@@ -48,6 +48,20 @@ export function formatAltitude(metres: number): string {
   return `${Math.round(metres)} m`;
 }
 
+/** A rise/run fraction as a signed percent, e.g. 0.052 -> "+5.2%". Estimate. */
+export function formatGradient(fraction: number | null | undefined): string {
+  if (fraction == null || !Number.isFinite(fraction)) return '—';
+  const pct = fraction * 100;
+  const sign = pct > 0 ? '+' : '';
+  return `${sign}${pct.toFixed(1)}%`;
+}
+
+/** Speed in km/h, one decimal, no unit suffix (for dense tables). */
+export function formatKmhValue(metresPerSecond: number | null | undefined): string {
+  if (metresPerSecond == null || !Number.isFinite(metresPerSecond)) return '—';
+  return (metresPerSecond * 3.6).toFixed(1);
+}
+
 /** Date like "24 Jun 2026". */
 export function formatDate(iso: string): string {
   const d = new Date(iso);

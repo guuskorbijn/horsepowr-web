@@ -20,8 +20,11 @@ import { bandsFromCache, deriveGaitBands } from '@/services/gaitService';
 import { zoneDistribution, type ZoneShare } from '@/services/hrZone';
 import { assessRecordingQuality, type RecordingQuality } from '@/services/recordingQuality';
 import { buildDeterministicSummary, type SessionSummary } from '@/services/sessionSummary';
+import { detectEfforts } from '@/services/effortService';
+import { effortThresholdsFor } from '@/constants/effort';
+import { buildGradientProfile, type GradientPoint } from '@/services/gradientService';
 import type { HorseRow, SessionRow } from '@/types/db';
-import type { ChartSeries, GaitBand, RoutePoint, SessionMetrics } from '@/types/view';
+import type { ChartSeries, Effort, GaitBand, RoutePoint, SessionMetrics } from '@/types/view';
 
 export interface SessionView {
   session: SessionRow;
@@ -33,6 +36,8 @@ export interface SessionView {
   altitude: ChartSeries | null;
   route: RoutePoint[];
   gaitBands: GaitBand[];
+  efforts: Effort[];
+  gradientProfile: GradientPoint[];
   zones: ZoneShare[];
   quality: RecordingQuality;
   summary: SessionSummary;
@@ -66,6 +71,13 @@ export async function loadSessionView(
   const zones = zoneDistribution(rows, maxHr);
   const quality = assessRecordingQuality(metrics);
 
+  // Effort/interval detection + gradient profile — both derived on read.
+  const efforts = detectEfforts(
+    { rows, startedAt: session.started_at, maxHr },
+    effortThresholdsFor(horse.discipline),
+  );
+  const gradientProfile = buildGradientProfile(rows, session.started_at);
+
   // Reuse the existing AI Edge Function; fall back to the deterministic summary.
   const aiLines = await invokeSessionSummary(supa, sessionId);
   const summary: SessionSummary = aiLines
@@ -82,6 +94,8 @@ export async function loadSessionView(
     altitude: nonEmpty(altitudeSeries(rows, session.started_at)),
     route: routePoints(rows, session.started_at),
     gaitBands,
+    efforts,
+    gradientProfile,
     zones,
     quality,
     summary,

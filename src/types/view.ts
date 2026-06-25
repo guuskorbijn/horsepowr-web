@@ -54,6 +54,33 @@ export interface SessionMetrics {
   gpsSampleCount: number;
 }
 
+/**
+ * A detected effort segment — a work bout or the recovery between bouts, derived
+ * on read from measured HR (and speed/GPS where present). DESCRIPTIVE only: it
+ * states what was executed, it never grades whether a prescription was met.
+ */
+export type EffortKind = 'work' | 'recovery';
+
+export interface Effort {
+  kind: EffortKind;
+  /** 1-based index among WORK bouts; null for recovery segments. */
+  workIndex: number | null;
+  /** ms elapsed from session start. */
+  startTs: number;
+  endTs: number;
+  durationMs: number;
+  /** GPS distance over the segment (m), or null with no GPS. */
+  distanceM: number | null;
+  avgHr: number | null;
+  peakHr: number | null;
+  avgSpeedMs: number | null;
+  maxSpeedMs: number | null;
+  /** Estimated avg gradient (rise/run fraction), or null with no usable GPS alt. */
+  avgGradient: number | null;
+  /** Estimated cumulative climb (m), or null with no usable GPS altitude. */
+  climbM: number | null;
+}
+
 /** A session paired with its horse — the common list/row shape. */
 export interface SessionWithHorse {
   session: SessionRow;

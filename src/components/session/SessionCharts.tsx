@@ -1,15 +1,16 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Activity } from 'lucide-react';
+import { Activity, Zap } from 'lucide-react';
 import { TimeSeriesChart } from '@/components/charts/TimeSeriesChart';
 import { GaitTrack, GaitLegend } from '@/components/charts/GaitTrack';
+import { EffortTrack, EffortLegend } from '@/components/charts/EffortTrack';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { xDomainOf, type Domain } from '@/services/chartMath';
 import { zoneValueBands } from '@/services/hrZone';
 import { hrZones } from '@/theme/tokens';
-import type { ChartSeries, GaitBand } from '@/types/view';
+import type { ChartSeries, Effort, GaitBand } from '@/types/view';
 
 interface PanelDef {
   series: ChartSeries;
@@ -22,12 +23,14 @@ export function SessionCharts({
   speed,
   altitude,
   gaitBands,
+  efforts,
   maxHr,
 }: {
   hr: ChartSeries | null;
   speed: ChartSeries | null;
   altitude: ChartSeries | null;
   gaitBands: GaitBand[];
+  efforts: Effort[];
   maxHr: number;
 }) {
   const panels = useMemo<PanelDef[]>(() => {
@@ -52,6 +55,8 @@ export function SessionCharts({
   const [xWindow, setXWindow] = useState<Domain>(fullDomain);
   const [hoverT, setHoverT] = useState<number | null>(null);
   const [showGaits, setShowGaits] = useState(true);
+  const [showEfforts, setShowEfforts] = useState(true);
+  const hasEfforts = efforts.some((e) => e.kind === 'work');
 
   const zoneBands = useMemo(() => zoneValueBands(maxHr), [maxHr]);
   const isZoomed = xWindow[0] !== fullDomain[0] || xWindow[1] !== fullDomain[1];
@@ -76,6 +81,16 @@ export function SessionCharts({
         subtitle="Scroll to zoom, drag to pan, double-click to reset. One shared time axis."
         action={
           <div className="no-print flex items-center gap-2">
+            {hasEfforts ? (
+              <Button
+                variant={showEfforts ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setShowEfforts((v) => !v)}
+                aria-pressed={showEfforts}
+              >
+                <Zap size={15} /> {showEfforts ? 'Hide efforts' : 'Show efforts'}
+              </Button>
+            ) : null}
             {gaitBands.length > 0 ? (
               <Button
                 variant={showGaits ? 'secondary' : 'ghost'}
@@ -116,6 +131,16 @@ export function SessionCharts({
             />
           </div>
         ))}
+
+        {showEfforts && hasEfforts ? (
+          <div>
+            <div className="mb-1 text-[13px] font-medium text-text-primary">Detected efforts</div>
+            <EffortTrack efforts={efforts} xWindow={xWindow} />
+            <div className="mt-2">
+              <EffortLegend />
+            </div>
+          </div>
+        ) : null}
 
         {showGaits && gaitBands.length > 0 ? (
           <div>

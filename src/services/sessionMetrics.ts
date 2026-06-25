@@ -8,7 +8,9 @@ import type { SessionMetrics } from '@/types/view';
 
 const EARTH_RADIUS_M = 6_371_000;
 
-function haversineMetres(
+/** Great-circle distance in metres between two lat/lng points. Shared by the
+ *  metrics, effort and gradient services so distance is computed identically. */
+export function haversineMetres(
   aLat: number,
   aLng: number,
   bLat: number,
