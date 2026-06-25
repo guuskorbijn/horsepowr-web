@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { SessionsList } from '@/components/sessions/SessionsList';
+import { HorseFitnessTrend } from '@/components/horse/HorseFitnessTrend';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { requireSessionContext } from '@/lib/session';
 import { getHorse } from '@/data/horseRepository';
@@ -62,7 +63,10 @@ export default async function HorseDetailPage({
           description="Sessions recorded for this horse will appear here once synced."
         />
       ) : (
-        <SessionsList sessions={sessions.map((session) => ({ session, horse }))} />
+        <div className="space-y-6">
+          <HorseFitnessTrend horseId={horse.id} maxHr={horse.max_hr} />
+          <SessionsList sessions={sessions.map((session) => ({ session, horse }))} />
+        </div>
       )}
     </>
   );
