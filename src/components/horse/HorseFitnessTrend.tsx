@@ -1,78 +1,40 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Select } from '@/components/ui/FormControls';
-import { LoadingState, ErrorState } from '@/components/ui/states';
 import { VIndexTrendChart } from '@/components/charts/VIndexTrendChart';
 import { HrSpeedCurveShiftChart } from '@/components/charts/HrSpeedCurveShiftChart';
-import { getBrowserSupabase } from '@/lib/supabase/browser';
-import { listSessionsForHorse } from '@/data/sessionRepository';
-import { getMeasurements } from '@/data/measurementRepository';
-import {
-  buildVIndexTrend,
-  filterTrend,
-  vTrendPoints,
-  type SessionVIndex,
-} from '@/services/vIndexTrendService';
+import { filterTrend, vTrendPoints, type SessionVIndex } from '@/services/vIndexTrendService';
 import { V_INDEX_THRESHOLDS, type VIndexThreshold } from '@/constants/hrSpeed';
 import { TRAINING_TYPE_LABELS } from '@/services/labels';
 import { cn } from '@/lib/cn';
 import type { TrainingType } from '@/types/db';
 
-// Cap the raw-row pull: V-index needs paired HR/speed rows, so we fetch the most
-// recent sessions only (client-side, mirroring the Trends view's approach).
-const RECENT_SESSION_LIMIT = 24;
-
-export function HorseFitnessTrend({ horseId, maxHr }: { horseId: string; maxHr: number }) {
-  const [trend, setTrend] = useState<SessionVIndex[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+/**
+ * Presentational adaptation view: the speed-at-HR-x trend and the faded HR–speed
+ * curve-shift, with date/training-type filters. Receives the pre-built trend so
+ * the parent loads the rows once. Descriptive only — no trend judgment.
+ */
+export function HorseFitnessTrend({ trend, maxHr }: { trend: SessionVIndex[]; maxHr: number }) {
   const [threshold, setThreshold] = useState<VIndexThreshold>(200);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [trainingType, setTrainingType] = useState<TrainingType | ''>('');
-  const token = useRef(0);
 
-  useEffect(() => {
-    const t = ++token.current;
-    // All state updates happen after the first await so we never setState
-    // synchronously during the effect (react-hooks/set-state-in-effect).
-    (async () => {
-      try {
-        const supa = getBrowserSupabase();
-        const sessions = await listSessionsForHorse(supa, horseId, {
-          finishedOnly: true,
-          limit: RECENT_SESSION_LIMIT,
-        });
-        const inputs = await Promise.all(
-          sessions.map(async (session) => ({ session, rows: await getMeasurements(supa, session.id) })),
-        );
-        if (token.current !== t) return;
-        setTrend(buildVIndexTrend(inputs));
-        setError(null);
-      } catch {
-        if (token.current === t) setError('Could not load this horse’s sessions.');
-      } finally {
-        if (token.current === t) setLoading(false);
-      }
-    })();
-  }, [horseId]);
-
-  const filtered = useMemo(() => {
-    if (!trend) return [];
-    return filterTrend(trend, {
-      fromMs: from ? new Date(from).getTime() : null,
-      toMs: to ? new Date(`${to}T23:59:59`).getTime() : null,
-      trainingType: trainingType || null,
-    });
-  }, [trend, from, to, trainingType]);
+  const filtered = useMemo(
+    () =>
+      filterTrend(trend, {
+        fromMs: from ? new Date(from).getTime() : null,
+        toMs: to ? new Date(`${to}T23:59:59`).getTime() : null,
+        trainingType: trainingType || null,
+      }),
+    [trend, from, to, trainingType],
+  );
 
   const points = useMemo(() => vTrendPoints(filtered, threshold), [filtered, threshold]);
 
-  if (loading) return <LoadingState label="Loading HR–speed history…" />;
-  if (error) return <ErrorState description={error} />;
-  if (!trend || trend.length === 0) return null;
+  if (trend.length === 0) return null;
 
   return (
     <Card>
