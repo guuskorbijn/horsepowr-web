@@ -54,7 +54,7 @@ export function EffortsPanel({ efforts, hasGps }: { efforts: Effort[]; hasGps: b
                 <th className="px-3 py-2.5 text-right font-medium">Max km/h</th>
                 {hasGps ? (
                   <th className="px-4 py-2.5 text-right font-medium">
-                    Avg grade<span className="text-text-tertiary"> *</span>
+                    Avg gradient<span className="text-text-tertiary"> *</span>
                   </th>
                 ) : null}
               </tr>

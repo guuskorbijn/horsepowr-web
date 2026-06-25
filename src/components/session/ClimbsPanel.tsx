@@ -29,7 +29,7 @@ export function ClimbsPanel({ climbs }: { climbs: ClimbSegment[] }) {
                 <th className="px-4 py-2.5 font-medium">Start</th>
                 <th className="px-3 py-2.5 text-right font-medium">Distance</th>
                 <th className="px-3 py-2.5 text-right font-medium">Climb *</th>
-                <th className="px-3 py-2.5 text-right font-medium">Avg grade *</th>
+                <th className="px-3 py-2.5 text-right font-medium">Avg gradient *</th>
                 <th className="px-3 py-2.5 text-right font-medium">Avg HR</th>
                 <th className="px-3 py-2.5 text-right font-medium">Peak HR</th>
                 <th className="px-4 py-2.5 text-right font-medium">Max km/h</th>
