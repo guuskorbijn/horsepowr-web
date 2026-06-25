@@ -3,7 +3,7 @@ import { CheckCheck, CloudOff, Clock } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { HorseIcon } from '@/components/icons/HorseIcon';
-import { formatDurationShort, formatRelativeDay } from '@/services/format';
+import { daysSince, formatDurationShort, formatRelativeDay } from '@/services/format';
 import type { HorseLastSession } from '@/types/view';
 
 function durationMs(startedAt: string, endedAt: string | null): number | null {
@@ -14,6 +14,7 @@ function durationMs(startedAt: string, endedAt: string | null): number | null {
 export function HorseCard({ entry }: { entry: HorseLastSession }) {
   const { horse, lastSession } = entry;
   const d = lastSession ? durationMs(lastSession.started_at, lastSession.ended_at) : null;
+  const sinceDays = lastSession ? daysSince(lastSession.started_at) : null;
 
   return (
     <Card className="flex flex-col gap-3 p-5">
@@ -63,6 +64,17 @@ export function HorseCard({ entry }: { entry: HorseLastSession }) {
               {d === null ? '—' : formatDurationShort(d)}
             </span>
             <span className="text-[12px] text-text-tertiary">last session</span>
+            {sinceDays !== null ? (
+              <span className="tabular ml-auto inline-flex items-center gap-1.5 text-[12px] text-text-secondary">
+                {/* Neutral recency dot — fades with age, no good/bad meaning. */}
+                <span
+                  className="inline-block h-2 w-2 rounded-full bg-text-tertiary"
+                  style={{ opacity: Math.max(0.25, 1 - sinceDays / 21) }}
+                  aria-hidden
+                />
+                {sinceDays === 0 ? 'today' : `${sinceDays}d since`}
+              </span>
+            ) : null}
           </div>
         </Link>
       ) : (

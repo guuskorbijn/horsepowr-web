@@ -82,6 +82,14 @@ export function formatDateTime(iso: string): string {
   });
 }
 
+/** Whole days since an ISO date (0 = today). A plain fact — no "due"/"overdue". */
+export function daysSince(iso: string, now: Date = new Date()): number | null {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  return Math.max(0, Math.round((startOf(now) - startOf(d)) / 86_400_000));
+}
+
 /** "today", "yesterday", "3 days ago", or a date for older. Descriptive recency. */
 export function formatRelativeDay(iso: string, now: Date = new Date()): string {
   const d = new Date(iso);
