@@ -23,6 +23,7 @@ import { buildDeterministicSummary, type SessionSummary } from '@/services/sessi
 import { detectEfforts } from '@/services/effortService';
 import { effortThresholdsFor } from '@/constants/effort';
 import { buildGradientProfile, type GradientPoint } from '@/services/gradientService';
+import { analyzeHrSpeed, type HrSpeedAnalysis } from '@/services/hrSpeedService';
 import type { HorseRow, SessionRow } from '@/types/db';
 import type { ChartSeries, Effort, GaitBand, RoutePoint, SessionMetrics } from '@/types/view';
 
@@ -38,6 +39,7 @@ export interface SessionView {
   gaitBands: GaitBand[];
   efforts: Effort[];
   gradientProfile: GradientPoint[];
+  hrSpeed: HrSpeedAnalysis;
   zones: ZoneShare[];
   quality: RecordingQuality;
   summary: SessionSummary;
@@ -77,6 +79,7 @@ export async function loadSessionView(
     effortThresholdsFor(horse.discipline),
   );
   const gradientProfile = buildGradientProfile(rows, session.started_at);
+  const hrSpeed = analyzeHrSpeed(rows, session.started_at);
 
   // Reuse the existing AI Edge Function; fall back to the deterministic summary.
   const aiLines = await invokeSessionSummary(supa, sessionId);
@@ -96,6 +99,7 @@ export async function loadSessionView(
     gaitBands,
     efforts,
     gradientProfile,
+    hrSpeed,
     zones,
     quality,
     summary,

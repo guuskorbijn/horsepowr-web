@@ -7,6 +7,7 @@ import { StatusPill } from '@/components/ui/StatusPill';
 import { SessionMetricTiles } from '@/components/session/SessionMetricTiles';
 import { SessionCharts } from '@/components/session/SessionCharts';
 import { EffortsPanel } from '@/components/session/EffortsPanel';
+import { HrSpeedPanel } from '@/components/session/HrSpeedPanel';
 import { RouteMap } from '@/components/session/RouteMap';
 import { SessionSummaryCard } from '@/components/session/SessionSummaryCard';
 import { RecordingQualityCard } from '@/components/session/RecordingQualityCard';
@@ -111,6 +112,8 @@ export default async function SessionDetailPage({
         />
 
         <EffortsPanel efforts={view.efforts} hasGps={view.route.length > 1} />
+
+        <HrSpeedPanel analysis={view.hrSpeed} maxHr={view.maxHr} />
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="space-y-6">
