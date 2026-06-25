@@ -9,6 +9,7 @@ import { SessionCharts } from '@/components/session/SessionCharts';
 import { EffortsPanel } from '@/components/session/EffortsPanel';
 import { HrSpeedPanel } from '@/components/session/HrSpeedPanel';
 import { RecoveryPanel } from '@/components/session/RecoveryPanel';
+import { ClimbsPanel } from '@/components/session/ClimbsPanel';
 import { RouteMap } from '@/components/session/RouteMap';
 import { SessionSummaryCard } from '@/components/session/SessionSummaryCard';
 import { RecordingQualityCard } from '@/components/session/RecordingQualityCard';
@@ -109,10 +110,13 @@ export default async function SessionDetailPage({
           altitude={view.altitude}
           gaitBands={view.gaitBands}
           efforts={view.efforts}
+          gradientProfile={view.gradientProfile}
           maxHr={view.maxHr}
         />
 
         <EffortsPanel efforts={view.efforts} hasGps={view.route.length > 1} />
+
+        <ClimbsPanel climbs={view.climbs} />
 
         <HrSpeedPanel analysis={view.hrSpeed} maxHr={view.maxHr} />
 

@@ -22,7 +22,12 @@ import { assessRecordingQuality, type RecordingQuality } from '@/services/record
 import { buildDeterministicSummary, type SessionSummary } from '@/services/sessionSummary';
 import { detectEfforts } from '@/services/effortService';
 import { effortThresholdsFor } from '@/constants/effort';
-import { buildGradientProfile, type GradientPoint } from '@/services/gradientService';
+import {
+  buildGradientProfile,
+  analyzeClimbs,
+  type GradientPoint,
+  type ClimbSegment,
+} from '@/services/gradientService';
 import { analyzeHrSpeed, type HrSpeedAnalysis } from '@/services/hrSpeedService';
 import { buildRecoveryDescent, type RecoveryDescent } from '@/services/recoveryService';
 import type { HorseRow, SessionRow } from '@/types/db';
@@ -40,6 +45,7 @@ export interface SessionView {
   gaitBands: GaitBand[];
   efforts: Effort[];
   gradientProfile: GradientPoint[];
+  climbs: ClimbSegment[];
   hrSpeed: HrSpeedAnalysis;
   recovery: RecoveryDescent | null;
   zones: ZoneShare[];
@@ -81,6 +87,7 @@ export async function loadSessionView(
     effortThresholdsFor(horse.discipline),
   );
   const gradientProfile = buildGradientProfile(rows, session.started_at);
+  const climbs = analyzeClimbs(rows, session.started_at, gradientProfile);
   const hrSpeed = analyzeHrSpeed(rows, session.started_at);
   const recovery = buildRecoveryDescent(rows, session.started_at, efforts);
 
@@ -102,6 +109,7 @@ export async function loadSessionView(
     gaitBands,
     efforts,
     gradientProfile,
+    climbs,
     hrSpeed,
     recovery,
     zones,

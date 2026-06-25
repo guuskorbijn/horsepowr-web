@@ -1,15 +1,17 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Activity, Zap } from 'lucide-react';
+import { Activity, Zap, Mountain } from 'lucide-react';
 import { TimeSeriesChart } from '@/components/charts/TimeSeriesChart';
 import { GaitTrack, GaitLegend } from '@/components/charts/GaitTrack';
 import { EffortTrack, EffortLegend } from '@/components/charts/EffortTrack';
+import { GradientStrip } from '@/components/charts/GradientStrip';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { xDomainOf, type Domain } from '@/services/chartMath';
 import { zoneValueBands } from '@/services/hrZone';
 import { hrZones } from '@/theme/tokens';
+import type { GradientPoint } from '@/services/gradientService';
 import type { ChartSeries, Effort, GaitBand } from '@/types/view';
 
 interface PanelDef {
@@ -24,6 +26,7 @@ export function SessionCharts({
   altitude,
   gaitBands,
   efforts,
+  gradientProfile,
   maxHr,
 }: {
   hr: ChartSeries | null;
@@ -31,6 +34,7 @@ export function SessionCharts({
   altitude: ChartSeries | null;
   gaitBands: GaitBand[];
   efforts: Effort[];
+  gradientProfile: GradientPoint[];
   maxHr: number;
 }) {
   const panels = useMemo<PanelDef[]>(() => {
@@ -56,7 +60,9 @@ export function SessionCharts({
   const [hoverT, setHoverT] = useState<number | null>(null);
   const [showGaits, setShowGaits] = useState(true);
   const [showEfforts, setShowEfforts] = useState(true);
+  const [showGradient, setShowGradient] = useState(true);
   const hasEfforts = efforts.some((e) => e.kind === 'work');
+  const hasGradient = gradientProfile.length > 1;
 
   const zoneBands = useMemo(() => zoneValueBands(maxHr), [maxHr]);
   const isZoomed = xWindow[0] !== fullDomain[0] || xWindow[1] !== fullDomain[1];
@@ -99,6 +105,16 @@ export function SessionCharts({
                 aria-pressed={showGaits}
               >
                 <Activity size={15} /> {showGaits ? 'Hide gaits' : 'Show gaits'}
+              </Button>
+            ) : null}
+            {hasGradient ? (
+              <Button
+                variant={showGradient ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setShowGradient((v) => !v)}
+                aria-pressed={showGradient}
+              >
+                <Mountain size={15} /> {showGradient ? 'Hide gradient' : 'Show gradient'}
               </Button>
             ) : null}
             {isZoomed ? (
@@ -149,6 +165,16 @@ export function SessionCharts({
             <div className="mt-2">
               <GaitLegend />
             </div>
+          </div>
+        ) : null}
+
+        {showGradient && hasGradient ? (
+          <div>
+            <div className="mb-1 flex items-baseline justify-between">
+              <span className="text-[13px] font-medium text-text-primary">Estimated gradient</span>
+              <span className="text-[12px] text-text-tertiary">% · estimate from GPS altitude</span>
+            </div>
+            <GradientStrip profile={gradientProfile} xWindow={xWindow} />
           </div>
         ) : null}
 

@@ -154,3 +154,82 @@ export interface Climb {
   climbM: number;
   avgGradient: number;
 }
+
+/** A climb enriched with the HR/speed measured during it (descriptive). */
+export interface ClimbSegment extends Climb {
+  avgHr: number | null;
+  peakHr: number | null;
+  avgSpeedMs: number | null;
+  maxSpeedMs: number | null;
+}
+
+/** Detects uphill runs from the gradient profile, with enter/exit hysteresis and
+ *  a minimum distance so GPS-altitude jitter doesn't invent climbs. */
+export function detectClimbs(
+  profile: GradientPoint[],
+  params: GradientParams = DEFAULT_GRADIENT_PARAMS,
+): Climb[] {
+  if (profile.length < 2) return [];
+  const climbs: Climb[] = [];
+  let inClimb = false;
+  let startIdx = 0;
+
+  const flush = (endIdx: number) => {
+    const start = profile[startIdx]!;
+    const end = profile[endIdx]!;
+    const stats = windowGradientStats(profile, start.t, end.t, params);
+    if (stats.distanceM >= params.minClimbDistanceM && (stats.avgGradient ?? 0) > 0) {
+      climbs.push({
+        startTs: start.t,
+        endTs: end.t,
+        distanceM: stats.distanceM,
+        climbM: stats.climbM ?? 0,
+        avgGradient: stats.avgGradient ?? 0,
+      });
+    }
+  };
+
+  for (let i = 0; i < profile.length; i++) {
+    const g = profile[i]!.gradient;
+    if (!inClimb && g >= params.climbEnterGradient) {
+      inClimb = true;
+      startIdx = i;
+    } else if (inClimb && g < params.climbExitGradient) {
+      flush(i);
+      inClimb = false;
+    }
+  }
+  if (inClimb) flush(profile.length - 1);
+  return climbs;
+}
+
+/** Detects climbs and enriches each with the HR/speed measured over it. */
+export function analyzeClimbs(
+  rows: MeasurementRow[],
+  startedAt: string,
+  profile: GradientPoint[],
+  params: GradientParams = DEFAULT_GRADIENT_PARAMS,
+): ClimbSegment[] {
+  const climbs = detectClimbs(profile, params);
+  if (climbs.length === 0) return [];
+  const startMs = new Date(startedAt).getTime();
+
+  return climbs.map((c) => {
+    const hr: number[] = [];
+    const speed: number[] = [];
+    for (const r of rows) {
+      const t = new Date(r.timestamp).getTime() - startMs;
+      if (t < c.startTs || t > c.endTs) continue;
+      if (r.hr_bpm !== null && Number.isFinite(r.hr_bpm)) hr.push(r.hr_bpm);
+      if (r.speed_ms !== null && Number.isFinite(r.speed_ms)) speed.push(r.speed_ms);
+    }
+    const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+    return {
+      ...c,
+      avgHr: avg(hr),
+      peakHr: hr.length ? Math.max(...hr) : null,
+      avgSpeedMs: avg(speed),
+      maxSpeedMs: speed.length ? Math.max(...speed) : null,
+    };
+  });
+}
