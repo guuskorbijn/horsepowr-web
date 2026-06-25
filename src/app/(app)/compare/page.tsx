@@ -5,6 +5,7 @@ import { getServerSupabase } from '@/lib/supabase/server';
 import { requireSessionContext } from '@/lib/session';
 import { listHorses } from '@/data/horseRepository';
 import { CompareView } from '@/components/compare/CompareView';
+import { LogoWordmark } from '@/components/brand/Logo';
 import type { HorseRow } from '@/types/db';
 
 type LoadResult =
@@ -29,6 +30,9 @@ export default async function ComparePage() {
 
   return (
     <>
+      <div className="print-only mb-4">
+        <LogoWordmark />
+      </div>
       <PageHeader
         title="Compare"
         description="Overlay two or more sessions of the same horse on a shared elapsed-time axis."

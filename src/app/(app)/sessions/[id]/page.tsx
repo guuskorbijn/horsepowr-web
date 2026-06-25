@@ -10,6 +10,7 @@ import { EffortsPanel } from '@/components/session/EffortsPanel';
 import { HrSpeedPanel } from '@/components/session/HrSpeedPanel';
 import { RecoveryPanel } from '@/components/session/RecoveryPanel';
 import { ClimbsPanel } from '@/components/session/ClimbsPanel';
+import { PrintReportHeader } from '@/components/session/PrintReportHeader';
 import { RouteMap } from '@/components/session/RouteMap';
 import { SessionSummaryCard } from '@/components/session/SessionSummaryCard';
 import { RecordingQualityCard } from '@/components/session/RecordingQualityCard';
@@ -69,10 +70,11 @@ export default async function SessionDetailPage({
     <>
       <BackLink />
 
-      {/* Print-only masthead (the sidebar logo is hidden when printing). */}
-      <div className="print-only mb-4">
+      {/* Print-only masthead + analyst report header (sidebar logo is hidden when printing). */}
+      <div className="print-only mb-2">
         <LogoWordmark />
       </div>
+      <PrintReportHeader view={view} />
 
       <PageHeader
         title={horse.name}

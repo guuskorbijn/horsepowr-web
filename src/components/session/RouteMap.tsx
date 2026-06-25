@@ -39,6 +39,8 @@ export function RouteMap({ route }: { route: RoutePoint[] }) {
         style: OSM_STYLE,
         attributionControl: { compact: true },
         interactive: true,
+        // Keep the GL buffer so the canvas isn't blank when printed to PDF (W18).
+        canvasContextAttributes: { preserveDrawingBuffer: true },
       });
       map.addControl(new maplibre.NavigationControl({ showCompass: false }), 'top-right');
 

@@ -175,9 +175,29 @@ body {
 }
 
 @media print {
-  /* Force a light, ink-friendly render regardless of the on-screen theme. */
+  /* Force a light, ink-friendly render regardless of the on-screen theme: pin
+   * the semantic variables to their light values so a dark-mode user still gets
+   * a clean white report. */
+  html,
   html.dark {
     color-scheme: light;
+    --app: #ffffff;
+    --surface: #ffffff;
+    --surface-muted: #f2f5f4;
+    --surface-sunken: #f7f9f9;
+    --text-primary: #15252b;
+    --text-secondary: #43534f;
+    --text-tertiary: #5c706e;
+    --primary: #0058a2;
+    --primary-soft: #e6f0f9;
+    --line: #cdd7d5;
+    --line-strong: #aab8b6;
+  }
+  /* Keep the zone/gait/effort colours on paper (chart fills + bars). */
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background: #ffffff;
   }
   .no-print {
     display: none !important;
@@ -203,8 +223,12 @@ body {
   .rounded-lg {
     break-inside: avoid;
   }
+  /* SVG charts scale to the print column width. */
+  svg {
+    max-width: 100% !important;
+  }
   @page {
-    margin: 16mm;
+    margin: 14mm;
   }
 }
 

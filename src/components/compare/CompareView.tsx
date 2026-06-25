@@ -87,7 +87,7 @@ export function CompareView({ horses }: { horses: HorseRow[] }) {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="no-print">
         <CardHeader title="Pick a horse and 2+ sessions" />
         <CardBody className="space-y-4">
           <div className="max-w-sm">
