@@ -42,7 +42,7 @@ export default async function SessionsPage() {
           description="Sessions recorded on the mobile app and synced to Supabase appear here."
         />
       ) : (
-        <SessionsList sessions={result.sessions} />
+        <SessionsList sessions={result.sessions} showFilters />
       )}
     </>
   );

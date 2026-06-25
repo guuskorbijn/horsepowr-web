@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { TopBar } from '@/components/shell/TopBar';
+import { QuickSwitcher } from '@/components/shell/QuickSwitcher';
 import { OrgProvider } from '@/components/shell/OrgContext';
 import { SessionProvider } from '@/components/shell/SessionContext';
 import type { SessionUser } from '@/components/shell/UserMenu';
@@ -28,6 +29,7 @@ export function AppShell({
             <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">{children}</main>
           </div>
         </div>
+        <QuickSwitcher />
       </OrgProvider>
     </SessionProvider>
   );

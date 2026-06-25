@@ -17,17 +17,24 @@ import { RecordingQualityCard } from '@/components/session/RecordingQualityCard'
 import { ZoneDistribution } from '@/components/session/ZoneDistribution';
 import { AnnotationForm } from '@/components/session/AnnotationForm';
 import { ExportBar } from '@/components/session/ExportBar';
+import { SessionPager } from '@/components/session/SessionPager';
 import { LogoWordmark } from '@/components/brand/Logo';
 import { annotationsFromSession } from '@/data/annotationRepository';
 import { sessionSummaryToCsv, exportSlug } from '@/services/csvExport';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { requireSessionContext } from '@/lib/session';
 import { loadSessionView, type SessionView } from '@/services/sessionViewService';
+import { listSessionsForHorse } from '@/data/sessionRepository';
 import { TRAINING_TYPE_LABELS } from '@/services/labels';
 import { formatDateTime } from '@/services/format';
 
+interface Neighbors {
+  olderId: string | null;
+  newerId: string | null;
+}
+
 type LoadResult =
-  | { status: 'ok'; view: SessionView }
+  | { status: 'ok'; view: SessionView; neighbors: Neighbors }
   | { status: 'not-found' }
   | { status: 'error' };
 
@@ -37,7 +44,15 @@ async function load(id: string): Promise<LoadResult> {
     const supa = await getServerSupabase();
     const view = await loadSessionView(supa, id);
     if (!view) return { status: 'not-found' };
-    return { status: 'ok', view };
+
+    // Neighbours for prev/next, in the horse's own session timeline (desc order).
+    const siblings = await listSessionsForHorse(supa, view.horse.id);
+    const idx = siblings.findIndex((s) => s.id === id);
+    const neighbors: Neighbors = {
+      newerId: idx > 0 ? (siblings[idx - 1]?.id ?? null) : null,
+      olderId: idx >= 0 && idx < siblings.length - 1 ? (siblings[idx + 1]?.id ?? null) : null,
+    };
+    return { status: 'ok', view, neighbors };
   } catch {
     return { status: 'error' };
   }
@@ -61,14 +76,17 @@ export default async function SessionDetailPage({
     );
   }
 
-  const { view } = result;
+  const { view, neighbors } = result;
   const { session, horse } = view;
   const slug = exportSlug(horse.name, session.started_at);
   const summaryCsv = sessionSummaryToCsv(view);
 
   return (
     <>
-      <BackLink />
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <BackLink />
+        <SessionPager olderId={neighbors.olderId} newerId={neighbors.newerId} />
+      </div>
 
       {/* Print-only masthead + analyst report header (sidebar logo is hidden when printing). */}
       <div className="print-only mb-2">
