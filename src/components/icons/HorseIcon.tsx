@@ -1,32 +1,35 @@
+import { mdiHorse } from '@mdi/js';
+
 /**
- * Custom horse glyph — Lucide has no horse, and the design system calls for a
- * small custom set (matching the 24px grid, 2px stroke, round caps/joins) only
- * for horse/sensor concepts. Single-colour, inherits `currentColor`.
+ * Horse glyph — Lucide has no horse, so per DESIGN_SYSTEM.md §6 we use the
+ * Material Design Icons `horse` (the web-side equivalent of MaterialCommunityIcons
+ * `horse` used on mobile). Single-colour, inherits `currentColor`.
+ *
+ * Props mirror the lucide-react icon API so this is a drop-in wherever a lucide
+ * icon is used (e.g. the nav registry in components/shell/nav.ts).
  */
+export interface HorseIconProps {
+  size?: number;
+  color?: string;
+  className?: string;
+}
+
 export function HorseIcon({
   size = 24,
+  color = 'currentColor',
   className,
-}: {
-  size?: number;
-  className?: string;
-}) {
+}: HorseIconProps): React.JSX.Element {
   return (
     <svg
+      xmlns="http://www.w3.org/2000/svg"
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      fill={color}
       className={className}
-      aria-hidden
+      aria-hidden="true"
     >
-      <path d="M5 21c-.5-4 1-7 3.5-8.5C7 11 5.5 9 6 6.5L8.5 8l1.5-2 2 2 3-2c1.5 1 2.5 3 2.5 5.5 0 1.5-.6 3-1.7 4.2" />
-      <path d="M16.8 15.7c.7 1.5 1 3.4.7 5.3" />
-      <path d="M9 21h8" />
-      <path d="M6 6.5 4 5" />
+      <path d={mdiHorse} />
     </svg>
   );
 }
