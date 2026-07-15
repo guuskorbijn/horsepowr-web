@@ -17,7 +17,7 @@ interface Group {
 }
 
 export function CommandCenter({ horses }: { horses: HorseLastSession[] }) {
-  const { locations, selectedLocationId } = useOrg();
+  const { org, locations, selectedLocationId } = useOrg();
   const [search, setSearch] = useState('');
 
   const groups = useMemo<Group[]>(() => {
@@ -45,6 +45,17 @@ export function CommandCenter({ horses }: { horses: HorseLastSession[] }) {
 
   return (
     <div className="space-y-8">
+      {org?.logo_url ? (
+        <div className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={org.logo_url}
+            alt={`${org.name} logo`}
+            className="h-12 max-w-[180px] object-contain"
+          />
+        </div>
+      ) : null}
+
       <div className="relative max-w-xs">
         <Search
           size={16}

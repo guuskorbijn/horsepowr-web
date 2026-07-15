@@ -1,5 +1,5 @@
 import type { Supa } from '@/lib/supabase/types';
-import type { HorseRow } from '@/types/db';
+import type { HorseRow, HorseSex } from '@/types/db';
 import { unwrap, unwrapMaybe } from '@/data/errors';
 
 export interface ListHorsesOptions {
@@ -34,6 +34,14 @@ export interface HorseInput {
   location_id: string | null;
   max_hr: number;
   active: boolean;
+  date_of_birth?: string | null;
+  sex?: HorseSex | null;
+  breed?: string | null;
+  level?: string | null;
+  height_cm?: number | null;
+  weight_kg?: number | null;
+  chip_number?: string | null;
+  photo_url?: string | null;
 }
 
 /** Creates a horse under RLS (trainer write only). Returns the new row. */

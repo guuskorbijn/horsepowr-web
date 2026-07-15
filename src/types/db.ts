@@ -13,6 +13,9 @@
 
 export type UserRole = 'trainer' | 'owner' | 'vet';
 
+/** Constrained vocabulary for horses.sex (20260715000000_horse_richer_data.sql). */
+export type HorseSex = 'mare' | 'gelding' | 'stallion';
+
 export type TrainingType =
   | 'dressage'
   | 'cross_country'
@@ -24,6 +27,7 @@ export type OrganizationRow = {
   name: string;
   location: string | null;
   country: string | null;
+  logo_url: string | null;
   created_at: string;
 }
 
@@ -53,6 +57,15 @@ export type HorseRow = {
   photo_url: string | null;
   active: boolean;
   max_hr: number;
+  // Richer data model (Block C — 20260715000000_horse_richer_data.sql). All
+  // nullable. Age is DERIVED from date_of_birth in the UI, never stored.
+  date_of_birth: string | null;
+  sex: HorseSex | null;
+  breed: string | null;
+  level: string | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  chip_number: string | null;
   created_at: string;
 }
 
@@ -118,7 +131,7 @@ export interface Database {
     Tables: {
       organizations: TableDef<
         OrganizationRow,
-        InsertOf<OrganizationRow, 'id' | 'created_at' | 'location' | 'country'>
+        InsertOf<OrganizationRow, 'id' | 'created_at' | 'location' | 'country' | 'logo_url'>
       >;
       locations: TableDef<
         LocationRow,
@@ -132,7 +145,8 @@ export interface Database {
         HorseRow,
         InsertOf<
           HorseRow,
-          'id' | 'created_at' | 'location_id' | 'discipline' | 'photo_url' | 'active' | 'max_hr'
+          | 'id' | 'created_at' | 'location_id' | 'discipline' | 'photo_url' | 'active' | 'max_hr'
+          | 'date_of_birth' | 'sex' | 'breed' | 'level' | 'height_cm' | 'weight_kg' | 'chip_number'
         >
       >;
       sessions: TableDef<

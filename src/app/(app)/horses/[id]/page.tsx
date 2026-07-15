@@ -6,6 +6,7 @@ import { EmptyState, ErrorState } from '@/components/ui/states';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { SessionsList } from '@/components/sessions/SessionsList';
 import { HorseAnalytics } from '@/components/horse/HorseAnalytics';
+import { HorseDetailsCard } from '@/components/horse/HorseDetailsCard';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { requireSessionContext } from '@/lib/session';
 import { getHorse } from '@/data/horseRepository';
@@ -57,17 +58,20 @@ export default async function HorseDetailPage({
         description={horse.discipline ?? 'No discipline set'}
         action={horse.active ? undefined : <StatusPill tone="muted">Inactive</StatusPill>}
       />
-      {sessions.length === 0 ? (
-        <EmptyState
-          title="No sessions yet"
-          description="Sessions recorded for this horse will appear here once synced."
-        />
-      ) : (
-        <div className="space-y-6">
-          <HorseAnalytics horseId={horse.id} maxHr={horse.max_hr} />
-          <SessionsList sessions={sessions.map((session) => ({ session, horse }))} />
-        </div>
-      )}
+      <div className="space-y-6">
+        <HorseDetailsCard horse={horse} />
+        {sessions.length === 0 ? (
+          <EmptyState
+            title="No sessions yet"
+            description="Sessions recorded for this horse will appear here once synced."
+          />
+        ) : (
+          <>
+            <HorseAnalytics horseId={horse.id} maxHr={horse.max_hr} />
+            <SessionsList sessions={sessions.map((session) => ({ session, horse }))} />
+          </>
+        )}
+      </div>
     </>
   );
 }

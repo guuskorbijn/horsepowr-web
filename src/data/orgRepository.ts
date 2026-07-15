@@ -13,6 +13,21 @@ export async function getOrganization(
   );
 }
 
+/** Updates the stable logo URL on the org (RLS: trainer write only). */
+export async function updateOrgLogo(
+  supa: Supa,
+  orgId: string,
+  logoUrl: string | null,
+): Promise<OrganizationRow> {
+  const rows = unwrap(
+    await supa.from('organizations').update({ logo_url: logoUrl }).eq('id', orgId).select('*'),
+    'updateOrgLogo',
+  );
+  const updated = rows[0];
+  if (!updated) throw new Error('Could not save the logo. You may not have edit access.');
+  return updated;
+}
+
 /** Lists locations in the org, alphabetical (RLS-scoped). */
 export async function listLocations(supa: Supa, orgId: string): Promise<LocationRow[]> {
   return unwrap(

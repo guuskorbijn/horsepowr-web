@@ -12,6 +12,7 @@ type LoadResult =
   | {
       status: 'ok';
       orgId: string;
+      orgLogoUrl: string | null;
       horses: HorseRow[];
       locations: LocationRow[];
       canManage: boolean;
@@ -32,6 +33,7 @@ async function load(): Promise<LoadResult> {
     return {
       status: 'ok',
       orgId: ctx.org.id,
+      orgLogoUrl: ctx.org.logo_url,
       horses,
       locations,
       canManage: ctx.capabilities.canManage,
@@ -55,6 +57,7 @@ export default async function HorsesPage() {
       ) : (
         <ManagementView
           orgId={result.orgId}
+          orgLogoUrl={result.orgLogoUrl}
           initialHorses={result.horses}
           initialLocations={result.locations}
           canManage={result.canManage}
