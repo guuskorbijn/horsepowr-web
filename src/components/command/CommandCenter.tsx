@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { EmptyState } from '@/components/ui/states';
 import { HorseCard } from '@/components/command/HorseCard';
+import { useTranslation } from '@/i18n/LocaleProvider';
 import type { HorseLastSession } from '@/types/view';
 
 interface Group {
@@ -18,6 +19,7 @@ interface Group {
 
 export function CommandCenter({ horses }: { horses: HorseLastSession[] }) {
   const { org, locations, selectedLocationId } = useOrg();
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
 
   const groups = useMemo<Group[]>(() => {
@@ -36,10 +38,10 @@ export function CommandCenter({ horses }: { horses: HorseLastSession[] }) {
     }
     const unassigned = filtered.filter((e) => e.horse.location_id === null);
     if (unassigned.length > 0) {
-      result.push({ id: null, name: 'Unassigned', country: null, entries: unassigned });
+      result.push({ id: null, name: t('command.unassigned'), country: null, entries: unassigned });
     }
     return result;
-  }, [horses, locations, selectedLocationId, search]);
+  }, [horses, locations, selectedLocationId, search, t]);
 
   const total = groups.reduce((acc, g) => acc + g.entries.length, 0);
 
@@ -64,16 +66,16 @@ export function CommandCenter({ horses }: { horses: HorseLastSession[] }) {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search horses"
+          placeholder={t('command.searchHorses')}
           className="pl-9"
-          aria-label="Search horses"
+          aria-label={t('command.searchHorses')}
         />
       </div>
 
       {total === 0 ? (
         <EmptyState
-          title="No horses match"
-          description="Try a different search, or switch the location filter in the top bar."
+          title={t('command.noMatchTitle')}
+          description={t('command.noMatchDescription')}
         />
       ) : (
         groups.map((group) => (
@@ -85,7 +87,8 @@ export function CommandCenter({ horses }: { horses: HorseLastSession[] }) {
               </h2>
               {group.country ? <StatusPill tone="muted">{group.country}</StatusPill> : null}
               <span className="text-[13px] text-text-tertiary">
-                {group.entries.length} {group.entries.length === 1 ? 'horse' : 'horses'}
+                {group.entries.length}{' '}
+                {t(group.entries.length === 1 ? 'horses.oneHorse' : 'horses.manyHorses')}
               </span>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

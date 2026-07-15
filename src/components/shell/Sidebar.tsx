@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { NAV_ITEMS } from '@/components/shell/nav';
 import { LogoWordmark } from '@/components/brand/Logo';
+import { useTranslation } from '@/i18n/LocaleProvider';
 import { cn } from '@/lib/cn';
 
 function isActive(pathname: string, href: string): boolean {
@@ -13,14 +14,15 @@ function isActive(pathname: string, href: string): boolean {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { t } = useTranslation();
   return (
     <aside className="no-print hidden w-60 shrink-0 flex-col border-r border-line bg-surface md:flex">
       <div className="flex h-16 items-center px-5">
-        <Link href="/" aria-label="HorsePowr home">
+        <Link href="/" aria-label={t('shell.homeAria')}>
           <LogoWordmark />
         </Link>
       </div>
-      <nav className="flex-1 space-y-1 px-3 py-2" aria-label="Primary">
+      <nav className="flex-1 space-y-1 px-3 py-2" aria-label={t('shell.primaryNavAria')}>
         {NAV_ITEMS.map((item) => {
           const active = isActive(pathname, item.href);
           const Icon = item.icon;
@@ -37,14 +39,12 @@ export function Sidebar() {
               )}
             >
               <Icon size={20} className="shrink-0" />
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           );
         })}
       </nav>
-      <div className="px-5 py-4 text-[12px] text-text-tertiary">
-        Read & analyze · capture lives in the app
-      </div>
+      <div className="px-5 py-4 text-[12px] text-text-tertiary">{t('shell.footnote')}</div>
     </aside>
   );
 }

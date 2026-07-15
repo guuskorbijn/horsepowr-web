@@ -6,6 +6,7 @@ import { getServerSupabase } from '@/lib/supabase/server';
 import { requireSessionContext } from '@/lib/session';
 import { listHorses } from '@/data/horseRepository';
 import { listLocations } from '@/data/orgRepository';
+import { getServerT } from '@/i18n/server';
 import type { HorseRow, LocationRow, UserRole } from '@/types/db';
 
 type LoadResult =
@@ -45,15 +46,15 @@ async function load(): Promise<LoadResult> {
 }
 
 export default async function HorsesPage() {
-  const result = await load();
+  const [result, t] = await Promise.all([load(), getServerT()]);
 
   return (
     <>
-      <PageHeader title="Horses" description="Manage horses and locations, and view your team." />
+      <PageHeader title={t('horses.manageTitle')} description={t('horses.manageDescription')} />
       {result.status === 'error' ? (
-        <ErrorState description="Could not load management data. Try again." />
+        <ErrorState description={t('horses.errorLoad')} />
       ) : result.status === 'no-org' ? (
-        <EmptyState icon={<HorseIcon size={28} />} title="No organization yet" />
+        <EmptyState icon={<HorseIcon size={28} />} title={t('horses.noOrg')} />
       ) : (
         <ManagementView
           orgId={result.orgId}

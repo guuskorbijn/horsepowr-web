@@ -5,6 +5,7 @@ import { getServerSupabase } from '@/lib/supabase/server';
 import { requireSessionContext } from '@/lib/session';
 import { getOrgSessions } from '@/services/sessionListService';
 import { SessionsList } from '@/components/sessions/SessionsList';
+import { getServerT } from '@/i18n/server';
 import type { SessionWithHorse } from '@/types/view';
 
 type LoadResult =
@@ -25,21 +26,18 @@ async function loadSessions(): Promise<LoadResult> {
 }
 
 export default async function SessionsPage() {
-  const result = await loadSessions();
+  const [result, t] = await Promise.all([loadSessions(), getServerT()]);
 
   return (
     <>
-      <PageHeader
-        title="Sessions"
-        description="Every recorded session, newest first. Open one for the deep view."
-      />
+      <PageHeader title={t('sessionsPage.title')} description={t('sessionsPage.description')} />
       {result.status === 'error' ? (
-        <ErrorState description="Could not load sessions. Check your connection and try again." />
+        <ErrorState description={t('sessionsPage.errorLoad')} />
       ) : result.status === 'no-org' || result.sessions.length === 0 ? (
         <EmptyState
           icon={<Activity size={28} />}
-          title="No sessions yet"
-          description="Sessions recorded on the mobile app and synced to Supabase appear here."
+          title={t('sessionsPage.emptyTitle')}
+          description={t('sessionsPage.emptyDescription')}
         />
       ) : (
         <SessionsList sessions={result.sessions} showFilters />

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { updateOrgLogo } from '@/data/orgRepository';
 import { uploadOrgLogo as uploadLogoFile } from '@/data/storageRepository';
+import { useTranslation } from '@/i18n/LocaleProvider';
 
 /**
  * Stable branding — shows the org logo and lets a trainer upload/replace it.
@@ -24,6 +25,7 @@ export function StableLogoCard({
   initialLogoUrl: string | null;
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [logoUrl, setLogoUrl] = useState<string | null>(initialLogoUrl);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +42,7 @@ export function StableLogoCard({
       setLogoUrl(org.logo_url);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not upload the logo.');
+      setError(err instanceof Error ? err.message : t('stableLogo.error'));
     } finally {
       setBusy(false);
     }
@@ -48,13 +50,13 @@ export function StableLogoCard({
 
   return (
     <Card>
-      <CardHeader title="Stable logo" subtitle="Shown at the top of your dashboard." />
+      <CardHeader title={t('stableLogo.title')} subtitle={t('stableLogo.subtitle')} />
       <CardBody>
         <div className="flex items-center gap-4">
           <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-surface-muted">
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoUrl} alt="Stable logo" className="h-full w-full object-contain" />
+              <img src={logoUrl} alt={t('stableLogo.title')} className="h-full w-full object-contain" />
             ) : (
               <ImagePlus size={22} className="text-text-tertiary" />
             )}
@@ -68,7 +70,7 @@ export function StableLogoCard({
                 disabled={busy}
                 onClick={() => fileInputRef.current?.click()}
               >
-                {busy ? 'Uploading…' : logoUrl ? 'Change logo' : 'Upload logo'}
+                {busy ? t('stableLogo.uploading') : logoUrl ? t('stableLogo.change') : t('stableLogo.upload')}
               </Button>
               <input
                 ref={fileInputRef}
@@ -79,7 +81,7 @@ export function StableLogoCard({
               />
             </div>
           ) : (
-            <p className="text-[13px] text-text-secondary">Only trainers can change the logo.</p>
+            <p className="text-[13px] text-text-secondary">{t('stableLogo.onlyTrainers')}</p>
           )}
         </div>
         {error ? (

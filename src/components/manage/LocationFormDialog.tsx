@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input, Field } from '@/components/ui/Input';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { createLocation, updateLocation } from '@/data/orgRepository';
+import { useTranslation } from '@/i18n/LocaleProvider';
 import type { LocationRow } from '@/types/db';
 
 export function LocationFormDialog({
@@ -21,6 +22,7 @@ export function LocationFormDialog({
   existing: LocationRow | null;
   onSaved: (location: LocationRow) => void;
 }) {
+  const { t } = useTranslation();
   const [name, setName] = useState(existing?.name ?? '');
   const [country, setCountry] = useState(existing?.country ?? '');
   const [busy, setBusy] = useState(false);
@@ -39,30 +41,30 @@ export function LocationFormDialog({
       onSaved(saved);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save the location.');
+      setError(err instanceof Error ? err.message : t('horses.location.errorSave'));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <Dialog open={open} onClose={onClose} title={existing ? 'Edit location' : 'Add location'}>
+    <Dialog open={open} onClose={onClose} title={existing ? t('horses.location.editTitle') : t('horses.location.addTitle')}>
       <form onSubmit={onSubmit} className="space-y-4">
-        <Field label="Name" htmlFor="loc-name">
+        <Field label={t('horses.location.nameLabel')} htmlFor="loc-name">
           <Input
             id="loc-name"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Breda"
+            placeholder={t('horses.location.namePlaceholder')}
           />
         </Field>
-        <Field label="Country" htmlFor="loc-country" hint="Optional, e.g. NL">
+        <Field label={t('horses.location.countryLabel')} htmlFor="loc-country" hint={t('horses.location.countryHint')}>
           <Input
             id="loc-country"
             value={country}
             onChange={(e) => setCountry(e.target.value)}
-            placeholder="Country code or name"
+            placeholder={t('horses.location.countryPlaceholder')}
           />
         </Field>
 
@@ -74,10 +76,10 @@ export function LocationFormDialog({
 
         <div className="flex justify-end gap-2 pt-1">
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="submit" size="sm" disabled={busy || name.trim() === ''}>
-            {busy ? 'Saving…' : 'Save'}
+            {busy ? t('common.saving') : t('common.save')}
           </Button>
         </div>
       </form>

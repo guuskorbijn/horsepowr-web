@@ -6,6 +6,7 @@ import { requireSessionContext } from '@/lib/session';
 import { listHorses } from '@/data/horseRepository';
 import { CompareView } from '@/components/compare/CompareView';
 import { LogoWordmark } from '@/components/brand/Logo';
+import { getServerT } from '@/i18n/server';
 import type { HorseRow } from '@/types/db';
 
 type LoadResult =
@@ -26,24 +27,21 @@ async function load(): Promise<LoadResult> {
 }
 
 export default async function ComparePage() {
-  const result = await load();
+  const [result, t] = await Promise.all([load(), getServerT()]);
 
   return (
     <>
       <div className="print-only mb-4">
         <LogoWordmark />
       </div>
-      <PageHeader
-        title="Compare"
-        description="Overlay two or more sessions of the same horse on a shared elapsed-time axis."
-      />
+      <PageHeader title={t('comparePage.title')} description={t('comparePage.description')} />
       {result.status === 'error' ? (
-        <ErrorState description="Could not load horses. Try again." />
+        <ErrorState description={t('comparePage.errorLoad')} />
       ) : result.status === 'no-org' || result.horses.length === 0 ? (
         <EmptyState
           icon={<GitCompareArrows size={28} />}
-          title="No horses to compare yet"
-          description="Add horses and record sessions in the mobile app first."
+          title={t('comparePage.emptyTitle')}
+          description={t('comparePage.emptyDescription')}
         />
       ) : (
         <CompareView horses={result.horses} />

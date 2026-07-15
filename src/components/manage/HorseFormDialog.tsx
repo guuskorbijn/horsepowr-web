@@ -10,13 +10,10 @@ import { createHorse, updateHorse } from '@/data/horseRepository';
 import { uploadHorsePhoto } from '@/data/storageRepository';
 import { DEFAULT_HORSE_MAX_HR } from '@/services/hrZone';
 import { formatAge } from '@/services/age';
+import { useTranslation } from '@/i18n/LocaleProvider';
 import type { HorseRow, HorseSex, LocationRow } from '@/types/db';
 
-const SEX_OPTIONS: { value: HorseSex; label: string }[] = [
-  { value: 'mare', label: 'Mare' },
-  { value: 'gelding', label: 'Gelding' },
-  { value: 'stallion', label: 'Stallion' },
-];
+const SEX_VALUES: HorseSex[] = ['mare', 'gelding', 'stallion'];
 
 function parseNumberOrNull(value: string): number | null {
   const trimmed = value.trim();
@@ -40,6 +37,7 @@ export function HorseFormDialog({
   existing: HorseRow | null;
   onSaved: (horse: HorseRow) => void;
 }) {
+  const { t } = useTranslation();
   const [name, setName] = useState(existing?.name ?? '');
   const [discipline, setDiscipline] = useState(existing?.discipline ?? '');
   const [locationId, setLocationId] = useState(existing?.location_id ?? '');
@@ -97,14 +95,14 @@ export function HorseFormDialog({
       onSaved(saved);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save the horse.');
+      setError(err instanceof Error ? err.message : t('horses.form.errorSave'));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <Dialog open={open} onClose={onClose} title={existing ? 'Edit horse' : 'Add horse'}>
+    <Dialog open={open} onClose={onClose} title={existing ? t('horses.form.editTitle') : t('horses.form.addTitle')}>
       <form onSubmit={onSubmit} className="space-y-4">
         {/* Photo */}
         <div className="flex items-center gap-4">
@@ -122,7 +120,7 @@ export function HorseFormDialog({
               size="sm"
               onClick={() => fileInputRef.current?.click()}
             >
-              {previewUrl ? 'Change photo' : 'Add photo'}
+              {previewUrl ? t('horses.form.photoChange') : t('horses.form.photoAdd')}
             </Button>
             <input
               ref={fileInputRef}
@@ -134,32 +132,32 @@ export function HorseFormDialog({
           </div>
         </div>
 
-        <Field label="Name" htmlFor="horse-name">
+        <Field label={t('horses.form.nameLabel')} htmlFor="horse-name">
           <Input
             id="horse-name"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Horse name"
+            placeholder={t('horses.form.namePlaceholder')}
           />
         </Field>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Discipline" htmlFor="horse-discipline">
+          <Field label={t('horses.form.disciplineLabel')} htmlFor="horse-discipline">
             <Input
               id="horse-discipline"
               value={discipline}
               onChange={(e) => setDiscipline(e.target.value)}
-              placeholder="e.g. dressage"
+              placeholder={t('horses.form.disciplinePlaceholder')}
             />
           </Field>
-          <Field label="Location" htmlFor="horse-location">
+          <Field label={t('horses.form.locationLabel')} htmlFor="horse-location">
             <Select
               id="horse-location"
               value={locationId}
               onChange={(e) => setLocationId(e.target.value)}
             >
-              <option value="">Unassigned</option>
+              <option value="">{t('common.unassigned')}</option>
               {locations.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.name}
@@ -170,20 +168,20 @@ export function HorseFormDialog({
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Sex" htmlFor="horse-sex">
+          <Field label={t('horses.form.sexLabel')} htmlFor="horse-sex">
             <Select id="horse-sex" value={sex} onChange={(e) => setSex(e.target.value)}>
-              <option value="">Unspecified</option>
-              {SEX_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
+              <option value="">{t('horses.form.sexUnspecified')}</option>
+              {SEX_VALUES.map((s) => (
+                <option key={s} value={s}>
+                  {t(`horses.sex.${s}`)}
                 </option>
               ))}
             </Select>
           </Field>
           <Field
-            label="Date of birth"
+            label={t('horses.form.dobLabel')}
             htmlFor="horse-dob"
-            hint={derivedAge ? `Age: ${derivedAge} (derived — never stored)` : undefined}
+            hint={derivedAge ? `${t('horses.detail.age')}: ${derivedAge} (${t('horses.form.ageHint')})` : undefined}
           >
             <Input
               id="horse-dob"
@@ -196,26 +194,26 @@ export function HorseFormDialog({
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Breed" htmlFor="horse-breed">
+          <Field label={t('horses.form.breedLabel')} htmlFor="horse-breed">
             <Input
               id="horse-breed"
               value={breed}
               onChange={(e) => setBreed(e.target.value)}
-              placeholder="e.g. KWPN"
+              placeholder={t('horses.form.breedPlaceholder')}
             />
           </Field>
-          <Field label="Level" htmlFor="horse-level">
+          <Field label={t('horses.form.levelLabel')} htmlFor="horse-level">
             <Input
               id="horse-level"
               value={level}
               onChange={(e) => setLevel(e.target.value)}
-              placeholder="e.g. Z2"
+              placeholder={t('horses.form.levelPlaceholder')}
             />
           </Field>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Height (cm)" htmlFor="horse-height">
+          <Field label={t('horses.form.heightLabel')} htmlFor="horse-height">
             <Input
               id="horse-height"
               type="number"
@@ -227,7 +225,7 @@ export function HorseFormDialog({
               placeholder="168"
             />
           </Field>
-          <Field label="Weight (kg)" htmlFor="horse-weight">
+          <Field label={t('horses.form.weightLabel')} htmlFor="horse-weight">
             <Input
               id="horse-weight"
               type="number"
@@ -242,22 +240,22 @@ export function HorseFormDialog({
         </div>
 
         <Field
-          label="Microchip number"
+          label={t('horses.form.chipLabel')}
           htmlFor="horse-chip"
-          hint="Identifying data — kept within your organization."
+          hint={t('horses.form.chipHint')}
         >
           <Input
             id="horse-chip"
             value={chipNumber}
             onChange={(e) => setChipNumber(e.target.value)}
-            placeholder="15-digit chip number"
+            placeholder={t('horses.form.chipPlaceholder')}
           />
         </Field>
 
         <Field
-          label="Max heart rate (bpm)"
+          label={t('horses.form.maxHrLabel')}
           htmlFor="horse-maxhr"
-          hint="Drives HR zones. Equine default 240 — confirm with your analyst."
+          hint={t('horses.form.maxHrHint')}
         >
           <Input
             id="horse-maxhr"
@@ -268,7 +266,7 @@ export function HorseFormDialog({
             onChange={(e) => setMaxHr(e.target.value)}
           />
         </Field>
-        <Toggle label="Active" checked={active} onChange={setActive} />
+        <Toggle label={t('horses.form.activeLabel')} checked={active} onChange={setActive} />
 
         {error ? (
           <p className="rounded-md bg-[var(--pill-warning-bg)] px-3 py-2 text-[13px] text-[var(--pill-warning-text)]">
@@ -278,10 +276,10 @@ export function HorseFormDialog({
 
         <div className="flex justify-end gap-2 pt-1">
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="submit" size="sm" disabled={busy || name.trim() === ''}>
-            {busy ? 'Saving…' : 'Save'}
+            {busy ? t('common.saving') : t('common.save')}
           </Button>
         </div>
       </form>

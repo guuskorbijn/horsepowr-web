@@ -5,6 +5,7 @@ import { getServerSupabase } from '@/lib/supabase/server';
 import { requireSessionContext } from '@/lib/session';
 import { listHorses } from '@/data/horseRepository';
 import { TrendsView } from '@/components/trends/TrendsView';
+import { getServerT } from '@/i18n/server';
 import type { HorseRow } from '@/types/db';
 
 type LoadResult =
@@ -25,21 +26,18 @@ async function load(): Promise<LoadResult> {
 }
 
 export default async function TrendsPage() {
-  const result = await load();
+  const [result, t] = await Promise.all([load(), getServerT()]);
 
   return (
     <>
-      <PageHeader
-        title="Trends"
-        description="Descriptive trends over time — the measured numbers, plotted. No grades, no baselines."
-      />
+      <PageHeader title={t('trendsPage.title')} description={t('trendsPage.description')} />
       {result.status === 'error' ? (
-        <ErrorState description="Could not load horses. Try again." />
+        <ErrorState description={t('trendsPage.errorLoad')} />
       ) : result.status === 'no-org' || result.horses.length === 0 ? (
         <EmptyState
           icon={<TrendingUp size={28} />}
-          title="No horses yet"
-          description="Add horses and record sessions in the mobile app to see trends."
+          title={t('trendsPage.emptyTitle')}
+          description={t('trendsPage.emptyDescription')}
         />
       ) : (
         <TrendsView horses={result.horses} />

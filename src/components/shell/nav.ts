@@ -13,16 +13,17 @@ export type NavIcon = ComponentType<{ size?: number; className?: string }>;
 
 export interface NavItem {
   href: string;
-  label: string;
+  /** i18n key resolved in the Sidebar (client) via useTranslation. */
+  labelKey: string;
   icon: NavIcon;
 }
 
 /** Left sidebar nav. "Horses" doubles as the management home (WP-W10). */
 export const NAV_ITEMS: readonly NavItem[] = [
-  { href: '/', label: 'Command center', icon: LayoutDashboard },
-  { href: '/sessions', label: 'Sessions', icon: Activity },
-  { href: '/compare', label: 'Compare', icon: GitCompareArrows },
-  { href: '/trends', label: 'Trends', icon: TrendingUp },
-  { href: '/horses', label: 'Horses', icon: HorseIcon },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/', labelKey: 'nav.commandCenter', icon: LayoutDashboard },
+  { href: '/sessions', labelKey: 'nav.sessions', icon: Activity },
+  { href: '/compare', labelKey: 'nav.compare', icon: GitCompareArrows },
+  { href: '/trends', labelKey: 'nav.trends', icon: TrendingUp },
+  { href: '/horses', labelKey: 'nav.horses', icon: HorseIcon },
+  { href: '/settings', labelKey: 'nav.settings', icon: Settings },
 ];

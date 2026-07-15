@@ -2,19 +2,22 @@
 
 import { Moon, Sun } from 'lucide-react';
 import { useTheme, type ThemeMode } from '@/theme/ThemeProvider';
+import { useTranslation } from '@/i18n/LocaleProvider';
 import { cn } from '@/lib/cn';
 
-const OPTIONS: Array<{ mode: ThemeMode; label: string; icon: typeof Sun }> = [
-  { mode: 'light', label: 'Light', icon: Sun },
-  { mode: 'dark', label: 'Dark', icon: Moon },
+const OPTIONS: Array<{ mode: ThemeMode; labelKey: string; icon: typeof Sun }> = [
+  { mode: 'light', labelKey: 'settings.themeLight', icon: Sun },
+  { mode: 'dark', labelKey: 'settings.themeDark', icon: Moon },
 ];
 
 export function ThemeSelector() {
   const { theme, setTheme } = useTheme();
+  const { t } = useTranslation();
   return (
     <div className="flex gap-3">
-      {OPTIONS.map(({ mode, label, icon: Icon }) => {
+      {OPTIONS.map(({ mode, labelKey, icon: Icon }) => {
         const active = theme === mode;
+        const label = t(labelKey);
         return (
           <button
             key={mode}

@@ -11,6 +11,7 @@ import { getServerSupabase } from '@/lib/supabase/server';
 import { requireSessionContext } from '@/lib/session';
 import { getHorse } from '@/data/horseRepository';
 import { listSessionsForHorse } from '@/data/sessionRepository';
+import { getServerT } from '@/i18n/server';
 import type { HorseRow, SessionRow } from '@/types/db';
 
 type LoadResult =
@@ -37,14 +38,14 @@ export default async function HorseDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const result = await load(id);
+  const [result, t] = await Promise.all([load(id), getServerT()]);
 
   if (result.status === 'not-found') notFound();
   if (result.status === 'error') {
     return (
       <>
-        <BackLink />
-        <ErrorState description="Could not load this horse. Try again." />
+        <BackLink label={t('nav.commandCenter')} />
+        <ErrorState description={t('horses.detailErrorLoad')} />
       </>
     );
   }
@@ -52,18 +53,18 @@ export default async function HorseDetailPage({
   const { horse, sessions } = result;
   return (
     <>
-      <BackLink />
+      <BackLink label={t('nav.commandCenter')} />
       <PageHeader
         title={horse.name}
-        description={horse.discipline ?? 'No discipline set'}
-        action={horse.active ? undefined : <StatusPill tone="muted">Inactive</StatusPill>}
+        description={horse.discipline ?? t('horses.noDisciplineSet')}
+        action={horse.active ? undefined : <StatusPill tone="muted">{t('horses.inactive')}</StatusPill>}
       />
       <div className="space-y-6">
         <HorseDetailsCard horse={horse} />
         {sessions.length === 0 ? (
           <EmptyState
-            title="No sessions yet"
-            description="Sessions recorded for this horse will appear here once synced."
+            title={t('horses.noSessionsTitle')}
+            description={t('horses.noSessionsDescription')}
           />
         ) : (
           <>
@@ -76,13 +77,13 @@ export default async function HorseDetailPage({
   );
 }
 
-function BackLink() {
+function BackLink({ label }: { label: string }) {
   return (
     <Link
       href="/"
       className="mb-4 inline-flex items-center gap-1.5 text-[13px] text-text-secondary hover:text-text-primary"
     >
-      <ArrowLeft size={15} /> Command center
+      <ArrowLeft size={15} /> {label}
     </Link>
   );
 }

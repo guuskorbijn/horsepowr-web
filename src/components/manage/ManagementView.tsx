@@ -10,7 +10,7 @@ import { HorseIcon } from '@/components/icons/HorseIcon';
 import { HorseFormDialog } from '@/components/manage/HorseFormDialog';
 import { LocationFormDialog } from '@/components/manage/LocationFormDialog';
 import { StableLogoCard } from '@/components/manage/StableLogoCard';
-import { ROLE_LABELS } from '@/lib/roles';
+import { useTranslation } from '@/i18n/LocaleProvider';
 import { cn } from '@/lib/cn';
 import type { HorseRow, LocationRow, UserRole } from '@/types/db';
 
@@ -39,6 +39,7 @@ export function ManagementView({
   canManage: boolean;
   currentUser: { name: string; email: string; role: UserRole };
 }) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('horses');
   const [horses, setHorses] = useState(initialHorses);
   const [locations, setLocations] = useState(initialLocations);
@@ -53,27 +54,27 @@ export function ManagementView({
   }>({ open: false, existing: null });
 
   const locationName = (id: string | null) =>
-    locations.find((l) => l.id === id)?.name ?? 'Unassigned';
+    locations.find((l) => l.id === id)?.name ?? t('common.unassigned');
 
   return (
     <div className="space-y-6">
       <StableLogoCard orgId={orgId} canManage={canManage} initialLogoUrl={orgLogoUrl} />
 
       <div className="flex gap-1 border-b border-line">
-        <TabButton active={tab === 'horses'} onClick={() => setTab('horses')} label="Horses" />
-        <TabButton active={tab === 'locations'} onClick={() => setTab('locations')} label="Locations" />
-        <TabButton active={tab === 'team'} onClick={() => setTab('team')} label="Team" />
+        <TabButton active={tab === 'horses'} onClick={() => setTab('horses')} label={t('horses.tabHorses')} />
+        <TabButton active={tab === 'locations'} onClick={() => setTab('locations')} label={t('horses.tabLocations')} />
+        <TabButton active={tab === 'team'} onClick={() => setTab('team')} label={t('horses.tabTeam')} />
       </div>
 
       {tab === 'horses' ? (
         <Card>
           <CardHeader
-            title="Horses"
-            subtitle={`${horses.length} ${horses.length === 1 ? 'horse' : 'horses'}`}
+            title={t('horses.tabHorses')}
+            subtitle={`${horses.length} ${t(horses.length === 1 ? 'horses.oneHorse' : 'horses.manyHorses')}`}
             action={
               canManage ? (
                 <Button size="sm" onClick={() => setHorseDialog({ open: true, existing: null })}>
-                  <Plus size={15} /> Add horse
+                  <Plus size={15} /> {t('horses.addHorse')}
                 </Button>
               ) : undefined
             }
@@ -90,24 +91,24 @@ export function ManagementView({
                       {horse.name}
                     </span>
                     <span className="block truncate text-[12px] text-text-secondary">
-                      {horse.discipline ?? 'No discipline'} · {locationName(horse.location_id)}
+                      {horse.discipline ?? t('horses.noDiscipline')} · {locationName(horse.location_id)}
                     </span>
                   </Link>
-                  {!horse.active ? <StatusPill tone="muted">Inactive</StatusPill> : null}
+                  {!horse.active ? <StatusPill tone="muted">{t('horses.inactive')}</StatusPill> : null}
                   {canManage ? (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setHorseDialog({ open: true, existing: horse })}
                     >
-                      <Pencil size={14} /> Edit
+                      <Pencil size={14} /> {t('common.edit')}
                     </Button>
                   ) : null}
                 </li>
               ))}
               {horses.length === 0 ? (
                 <li className="px-5 py-6 text-[14px] text-text-secondary">
-                  No horses yet. {canManage ? 'Add your first one above.' : ''}
+                  {t('horses.noHorsesTitle')} {canManage ? t('horses.noHorsesHint') : ''}
                 </li>
               ) : null}
             </ul>
@@ -118,12 +119,12 @@ export function ManagementView({
       {tab === 'locations' ? (
         <Card>
           <CardHeader
-            title="Locations"
-            subtitle={`${locations.length} ${locations.length === 1 ? 'location' : 'locations'}`}
+            title={t('horses.tabLocations')}
+            subtitle={`${locations.length} ${t(locations.length === 1 ? 'horses.oneLocation' : 'horses.manyLocations')}`}
             action={
               canManage ? (
                 <Button size="sm" onClick={() => setLocationDialog({ open: true, existing: null })}>
-                  <Plus size={15} /> Add location
+                  <Plus size={15} /> {t('horses.addLocation')}
                 </Button>
               ) : undefined
             }
@@ -145,13 +146,13 @@ export function ManagementView({
                       size="sm"
                       onClick={() => setLocationDialog({ open: true, existing: loc })}
                     >
-                      <Pencil size={14} /> Edit
+                      <Pencil size={14} /> {t('common.edit')}
                     </Button>
                   ) : null}
                 </li>
               ))}
               {locations.length === 0 ? (
-                <li className="px-5 py-6 text-[14px] text-text-secondary">No locations yet.</li>
+                <li className="px-5 py-6 text-[14px] text-text-secondary">{t('horses.noLocations')}</li>
               ) : null}
             </ul>
           </CardBody>
@@ -160,7 +161,7 @@ export function ManagementView({
 
       {tab === 'team' ? (
         <Card>
-          <CardHeader title="Team & roles" />
+          <CardHeader title={t('horses.teamTitle')} />
           <CardBody className="space-y-4">
             <div className="flex items-center gap-3 rounded-md border border-line px-4 py-3">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-soft text-primary">
@@ -171,14 +172,10 @@ export function ManagementView({
                 <p className="truncate text-[12px] text-text-secondary">{currentUser.email}</p>
               </div>
               <StatusPill tone="info" icon={<ShieldCheck size={13} />}>
-                {ROLE_LABELS[currentUser.role]}
+                {t(`roles.${currentUser.role}`)}
               </StatusPill>
             </div>
-            <p className="text-[13px] text-text-secondary">
-              Listing and inviting teammates isn&apos;t available from the web client yet — row-level
-              security only exposes your own profile, and invites run through the existing mobile
-              mechanism. Manage team members there for now.
-            </p>
+            <p className="text-[13px] text-text-secondary">{t('horses.teamNote')}</p>
           </CardBody>
         </Card>
       ) : null}
