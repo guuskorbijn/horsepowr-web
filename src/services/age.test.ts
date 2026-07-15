@@ -23,6 +23,11 @@ describe('deriveAgeYears', () => {
   it('counts the birthday itself', () => {
     expect(deriveAgeYears('2014-07-15', NOW)).toBe(12);
   });
+
+  it('handles a Feb-29 (leap day) date of birth', () => {
+    expect(deriveAgeYears('2016-02-29', NOW)).toBe(10);
+    expect(deriveAgeYears('2016-02-29', new Date('2020-02-28T12:00:00.000Z'))).toBe(3);
+  });
 });
 
 describe('formatAge', () => {
