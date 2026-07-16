@@ -21,6 +21,12 @@ to an external analyst. Primary users: **owner, trainer, analyst**.
   claim, advice, prediction, or comparison to a "normal" baseline. No
   "good/weak/overtrained/should/improving/concerning." Plot the numbers; label
   nothing normatively. The reused AI summary inherits this rule exactly.
+  - **Scope of this rule:** it governs the charts and the one-shot in-app
+    **summary card**. The separate **web analyst chat** (AI_CHAT_SPEC) may
+    *describe* trends in the measured numbers — e.g. that HR at a given speed is
+    falling over weeks ("getting fitter") — since that is still reading the data.
+    What stays forbidden there is **prescribing a training programme** (sets/reps/
+    target bpm) and any medical/injury/welfare diagnosis.
 
 ## Locked stack
 - **Next.js (App Router)**, TypeScript **strict** (+ `noUncheckedIndexedAccess`).
