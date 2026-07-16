@@ -110,13 +110,19 @@ export async function POST(request: Request): Promise<Response> {
   }));
   const toolTrace: Array<{ tool: string; isError: boolean }> = [];
 
+  // Ground the model in the current date so bare dates ("21 June") resolve to a
+  // real year, and date filters land on the right window. Kept out of the static
+  // prompt because it must be live per request.
+  const today = new Date().toISOString().slice(0, 10);
+  const system = `${ANALYST_SYSTEM_PROMPT}\n\nContext: today's date is ${today} (UTC). If the user gives a date without a year, assume the most recent occurrence on or before today. A date-only filter passed to list_sessions covers that whole day.`;
+
   try {
     for (let step = 0; step < ANALYST_MAX_STEPS; step++) {
       const response = await client.messages.create({
         model: ANALYST_MODEL,
         max_tokens: ANALYST_MAX_TOKENS,
         ...(ANALYST_TEMPERATURE !== undefined ? { temperature: ANALYST_TEMPERATURE } : {}),
-        system: ANALYST_SYSTEM_PROMPT,
+        system,
         tools: ANALYST_TOOLS,
         messages,
       });
