@@ -4,6 +4,7 @@ import {
   Activity,
   GitCompareArrows,
   TrendingUp,
+  Sparkles,
   Settings,
 } from 'lucide-react';
 import { HorseIcon } from '@/components/icons/HorseIcon';
@@ -24,6 +25,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/sessions', labelKey: 'nav.sessions', icon: Activity },
   { href: '/compare', labelKey: 'nav.compare', icon: GitCompareArrows },
   { href: '/trends', labelKey: 'nav.trends', icon: TrendingUp },
+  { href: '/analyst', labelKey: 'nav.analyst', icon: Sparkles },
   { href: '/horses', labelKey: 'nav.horses', icon: HorseIcon },
   { href: '/settings', labelKey: 'nav.settings', icon: Settings },
 ];
