@@ -75,8 +75,11 @@ suite('analyst org isolation — Org A cannot see Org B', () => {
     supaA = await signInAs(cfg.aEmail, cfg.aPassword);
   }, 30_000);
 
-  it('list_horses (scoped to Org A) never includes an Org B horse', async () => {
+  it('list_horses returns Org A’s own horses but never an Org B horse', async () => {
     const horses = await listHorsesForAnalyst(supaA, cfg.aOrgId);
+    // Positive guard: Org A must actually see its own data (seed gives it ≥1
+    // horse). Without this, an "empty everywhere" misconfig would pass trivially.
+    expect(horses.length).toBeGreaterThan(0);
     expect(horses.some((h) => h.id === cfg.bHorseId)).toBe(false);
   });
 
