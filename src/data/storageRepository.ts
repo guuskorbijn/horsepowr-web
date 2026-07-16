@@ -28,10 +28,39 @@ function extensionFor(file: File): string {
   return 'jpg';
 }
 
-async function uploadImage(supa: Supa, path: string, file: File): Promise<string> {
+/**
+ * Uploads an image into a folder under a FRESH object name and returns its public
+ * URL. We deliberately INSERT to a new path every time (never overwrite in place):
+ * overwrite-via-`upsert` engages the bucket's Storage-RLS UPDATE path, which does
+ * not evaluate cleanly on this project and 403s — whereas INSERT + DELETE do. So we
+ * best-effort prune the folder's previous objects, then insert the new one. The
+ * stored logo_url / photo_url is the full public URL, so the object name need not
+ * be stable.
+ */
+async function uploadImage(
+  supa: Supa,
+  folder: string,
+  filename: string,
+  file: File,
+): Promise<string> {
+  const path = `${folder}/${filename}`;
+
+  // Best-effort: clear the folder's earlier objects so replacements don't pile up.
+  // Never let pruning block the upload — a lingering old object is harmless (the
+  // stored URL points at the new one).
+  try {
+    const { data: existing } = await supa.storage.from(ORG_MEDIA_BUCKET).list(folder);
+    const stale = (existing ?? [])
+      .map((f) => `${folder}/${f.name}`)
+      .filter((p) => p !== path);
+    if (stale.length > 0) await supa.storage.from(ORG_MEDIA_BUCKET).remove(stale);
+  } catch {
+    // ignore — the insert below is what must succeed
+  }
+
   const { error } = await supa.storage
     .from(ORG_MEDIA_BUCKET)
-    .upload(path, file, { contentType: file.type || 'image/jpeg', upsert: true });
+    .upload(path, file, { contentType: file.type || 'image/jpeg', upsert: false });
   if (error) {
     throw new RepositoryError(`uploadImage: ${error.message}`);
   }
@@ -45,7 +74,7 @@ export async function uploadOrgLogo(
   orgId: string,
   file: File,
 ): Promise<string> {
-  return uploadImage(supa, `${orgId}/logo/logo.${extensionFor(file)}`, file);
+  return uploadImage(supa, `${orgId}/logo`, `logo-${Date.now()}.${extensionFor(file)}`, file);
 }
 
 /** Uploads a horse photo. Returns the public URL for horses.photo_url. */
@@ -55,5 +84,10 @@ export async function uploadHorsePhoto(
   horseId: string,
   file: File,
 ): Promise<string> {
-  return uploadImage(supa, `${orgId}/horses/${horseId}/photo.${extensionFor(file)}`, file);
+  return uploadImage(
+    supa,
+    `${orgId}/horses/${horseId}`,
+    `photo-${Date.now()}.${extensionFor(file)}`,
+    file,
+  );
 }
