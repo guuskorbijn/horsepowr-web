@@ -28,7 +28,13 @@ export function Dialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      style={{
+        paddingTop: 'max(1rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+        paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+        paddingRight: 'max(1rem, env(safe-area-inset-right))',
+      }}
       onClick={onClose}
       role="presentation"
     >
@@ -36,21 +42,21 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="w-full max-w-lg rounded-xl border border-line bg-surface shadow-[var(--shadow-raised)]"
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-[var(--shadow-raised)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
+        <div className="flex shrink-0 items-center justify-between border-b border-line px-5 py-3.5">
           <h2 className="font-display text-[18px] font-medium text-text-primary">{title}</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-8 w-8 items-center justify-center rounded-md text-text-secondary hover:bg-surface-muted"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-text-secondary hover:bg-surface-muted"
           >
             <X size={18} />
           </button>
         </div>
-        <div className="px-5 py-5">{children}</div>
+        <div className="overflow-y-auto px-5 py-5">{children}</div>
       </div>
     </div>
   );

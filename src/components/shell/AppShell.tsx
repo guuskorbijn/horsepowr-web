@@ -22,7 +22,7 @@ export function AppShell({
   return (
     <SessionProvider user={user}>
       <OrgProvider org={org} locations={locations}>
-        <div className="flex min-h-screen">
+        <div className="flex min-h-dvh">
           <Sidebar />
           <div className="flex min-w-0 flex-1 flex-col">
             <TopBar user={user} />

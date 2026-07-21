@@ -35,7 +35,12 @@ export function CardHeader({
   className?: string;
 }) {
   return (
-    <div className={cn('flex items-start justify-between gap-4 px-6 pt-5', className)}>
+    <div
+      className={cn(
+        'flex flex-col gap-3 px-6 pt-5 sm:flex-row sm:items-start sm:justify-between sm:gap-4',
+        className,
+      )}
+    >
       <div>
         <h2 className="font-display text-[18px] font-medium leading-6 text-text-primary">
           {title}
@@ -44,7 +49,7 @@ export function CardHeader({
           <p className="mt-0.5 text-[13px] text-text-secondary">{subtitle}</p>
         ) : null}
       </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
+      {action ? <div className="sm:shrink-0">{action}</div> : null}
     </div>
   );
 }

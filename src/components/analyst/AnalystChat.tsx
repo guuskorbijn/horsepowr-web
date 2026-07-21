@@ -36,7 +36,7 @@ export function AnalystChat({ firstHorseName }: { firstHorseName?: string }) {
   const isEmpty = messages.length === 0;
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-13rem)] max-w-3xl flex-col">
+    <div className="mx-auto flex min-h-[calc(100dvh-13rem)] max-w-3xl flex-col">
       {isEmpty ? (
         <ChatEmptyState
           title={t('analystPage.emptyTitle')}
@@ -76,7 +76,10 @@ export function AnalystChat({ firstHorseName }: { firstHorseName?: string }) {
         </div>
       )}
 
-      <div className="sticky bottom-0 z-10 bg-app pt-3 pb-2">
+      <div
+        className="sticky bottom-0 z-10 bg-app pt-3"
+        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+      >
         <Composer
           disabled={status === 'sending'}
           placeholder={t('analystPage.inputPlaceholder')}

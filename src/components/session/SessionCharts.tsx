@@ -86,7 +86,7 @@ export function SessionCharts({
         title="Session charts"
         subtitle="Scroll to zoom, drag to pan, double-click to reset. One shared time axis."
         action={
-          <div className="no-print flex items-center gap-2">
+          <div className="no-print flex flex-wrap items-center gap-2 sm:justify-end">
             {hasEfforts ? (
               <Button
                 variant={showEfforts ? 'secondary' : 'ghost'}

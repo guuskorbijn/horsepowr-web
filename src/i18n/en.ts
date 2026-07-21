@@ -34,6 +34,8 @@ export const en = {
     homeAria: 'HorsePowr home',
     primaryNavAria: 'Primary',
     footnote: 'Read & analyze · capture lives in the app',
+    openMenu: 'Open menu',
+    closeMenu: 'Close menu',
   },
   command: {
     title: 'Command center',

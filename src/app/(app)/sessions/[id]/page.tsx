@@ -98,7 +98,7 @@ export default async function SessionDetailPage({
         title={horse.name}
         description={formatDateTime(session.started_at)}
         action={
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col items-start gap-2 sm:items-end">
             <ExportBar
               sessionId={session.id}
               startedAt={session.started_at}

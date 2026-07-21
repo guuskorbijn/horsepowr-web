@@ -29,6 +29,8 @@ export const nl = {
     homeAria: 'HorsePowr home',
     primaryNavAria: 'Hoofdnavigatie',
     footnote: 'Lezen & analyseren · opnemen doe je in de app',
+    openMenu: 'Menu openen',
+    closeMenu: 'Menu sluiten',
   },
   command: {
     title: 'Overzicht',
