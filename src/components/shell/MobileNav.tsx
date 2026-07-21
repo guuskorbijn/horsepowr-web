@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
@@ -57,13 +58,20 @@ export function MobileNav() {
         <Menu size={22} />
       </button>
 
-      {open ? (
-        <div
-          className="fixed inset-0 z-50 md:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-label={t('shell.primaryNavAria')}
-        >
+      {open
+        ? createPortal(
+            // Portaled to <body> so the fixed overlay is positioned against the
+            // viewport. Rendered inside the TopBar (which has `backdrop-blur`),
+            // its backdrop-filter would become the containing block for this
+            // `fixed` element and clip the drawer to the 64px header instead.
+            // `open` is only ever true after a client click, so document.body
+            // exists here (never reached during SSR, where open starts false).
+            <div
+              className="fixed inset-0 z-50 md:hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-label={t('shell.primaryNavAria')}
+            >
           <div
             className="absolute inset-0 bg-black/40"
             onClick={() => setOpen(false)}
@@ -118,8 +126,10 @@ export function MobileNav() {
             </nav>
             <div className="px-5 py-4 text-[12px] text-text-tertiary">{t('shell.footnote')}</div>
           </aside>
-        </div>
-      ) : null}
+        </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }
