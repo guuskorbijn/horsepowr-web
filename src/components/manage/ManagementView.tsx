@@ -6,7 +6,7 @@ import { MapPin, Pencil, Plus, ShieldCheck, UserCog } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { StatusPill } from '@/components/ui/StatusPill';
-import { HorseIcon } from '@/components/icons/HorseIcon';
+import { HorseAvatar } from '@/components/horse/HorseAvatar';
 import { HorseFormDialog } from '@/components/manage/HorseFormDialog';
 import { LocationFormDialog } from '@/components/manage/LocationFormDialog';
 import { StableLogoCard } from '@/components/manage/StableLogoCard';
@@ -83,9 +83,7 @@ export function ManagementView({
             <ul className="divide-y divide-line">
               {horses.map((horse) => (
                 <li key={horse.id} className="flex items-center gap-3 px-5 py-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-soft text-primary">
-                    <HorseIcon size={18} />
-                  </span>
+                  <HorseAvatar photoUrl={horse.photo_url} name={horse.name} />
                   <Link href={`/horses/${horse.id}`} className="min-w-0 flex-1 hover:underline">
                     <span className="block truncate font-medium text-text-primary">
                       {horse.name}

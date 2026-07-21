@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { CheckCheck, CloudOff, Clock } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { StatusPill } from '@/components/ui/StatusPill';
-import { HorseIcon } from '@/components/icons/HorseIcon';
+import { HorseAvatar } from '@/components/horse/HorseAvatar';
 import { daysSince, formatDurationShort, formatRelativeDay } from '@/services/format';
 import type { HorseLastSession } from '@/types/view';
 
@@ -23,9 +23,7 @@ export function HorseCard({ entry }: { entry: HorseLastSession }) {
           href={`/horses/${horse.id}`}
           className="flex min-w-0 items-center gap-2 hover:underline"
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
-            <HorseIcon size={18} />
-          </span>
+          <HorseAvatar photoUrl={horse.photo_url} name={horse.name} />
           <span className="min-w-0">
             <span className="block truncate font-display text-[16px] font-medium text-text-primary">
               {horse.name}

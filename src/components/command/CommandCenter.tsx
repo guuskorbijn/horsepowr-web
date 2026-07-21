@@ -53,7 +53,7 @@ export function CommandCenter({ horses }: { horses: HorseLastSession[] }) {
           <img
             src={org.logo_url}
             alt={`${org.name} logo`}
-            className="h-12 max-w-[180px] object-contain"
+            className="h-[62.4px] max-w-[234px] object-contain"
           />
         </div>
       ) : null}
