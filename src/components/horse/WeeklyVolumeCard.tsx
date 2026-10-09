@@ -24,7 +24,7 @@ export function WeeklyVolumeCard({ weeks }: { weeks: WeekVolume[] }) {
     <Card>
       <CardHeader
         title="Weekly volume (measured)"
-        subtitle="Measured distance, duration and time in each HR zone per week. Sums only — not a training-load score."
+        subtitle="Measured distance, duration and time in each HR zone per week. Sums only, not a training-load score."
       />
       <CardBody className="space-y-4">
         <div className="grid grid-cols-3 gap-3">

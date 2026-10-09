@@ -19,7 +19,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: 'HorsePowr',
-  description: 'Read, analyze and manage equine fitness data — desktop companion.',
+  description: 'Read, analyze and manage equine fitness data: desktop companion.',
 };
 
 export default function RootLayout({

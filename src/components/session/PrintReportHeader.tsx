@@ -29,7 +29,7 @@ export function PrintReportHeader({ view }: { view: SessionView }) {
     <div className="print-only mb-4 border-b border-line pb-4">
       <div className="flex items-baseline justify-between">
         <h1 className="font-display text-[22px] font-semibold text-text-primary">
-          {horse.name} — session report
+          {horse.name}: session report
         </h1>
         <span className="text-[13px] text-text-secondary">{formatDateTime(session.started_at)}</span>
       </div>

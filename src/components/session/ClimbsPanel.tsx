@@ -19,7 +19,7 @@ export function ClimbsPanel({ climbs }: { climbs: ClimbSegment[] }) {
     <Card>
       <CardHeader
         title="Climbs"
-        subtitle="Detected uphill segments — gradient and climb are estimates from GPS altitude."
+        subtitle="Detected uphill segments. Gradient and climb are estimates from GPS altitude."
       />
       <CardBody className="px-0 py-0">
         <div className="overflow-x-auto">

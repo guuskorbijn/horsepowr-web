@@ -46,7 +46,7 @@ export function assessRecordingQuality(metrics: SessionMetrics): RecordingQualit
     explanation = `${pct}% of expected HR samples captured. Some short gaps in sensor coverage.`;
   } else {
     grade = 'poor';
-    explanation = `${pct}% of expected HR samples captured. Frequent gaps — the sensor likely dropped out.`;
+    explanation = `${pct}% of expected HR samples captured. Frequent gaps. The sensor likely dropped out.`;
   }
 
   return { grade, completeness, expectedSamples: expected, actualSamples: actual, explanation };

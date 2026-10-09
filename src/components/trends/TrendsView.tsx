@@ -113,7 +113,7 @@ export function TrendsView({ horses }: { horses: HorseRow[] }) {
       <Card>
         <CardHeader
           title="What to plot"
-          subtitle="Descriptive trends — the measured numbers over time. No grades, no baselines."
+          subtitle="Descriptive trends: the measured numbers over time. No grades, no baselines."
         />
         <CardBody className="space-y-4">
           <div className="flex flex-wrap gap-2">

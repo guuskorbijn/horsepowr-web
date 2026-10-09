@@ -48,7 +48,7 @@ export function HrSpeedPanel({
         <p className="text-[12px] text-text-tertiary">
           Method: each speed sample is paired with the nearest heart-rate sample, then a
           least-squares line is fit over the locomotion range. V-values are reported only
-          within the session&rsquo;s observed HR range — analyst-validated, not extrapolated.
+          within the session&rsquo;s observed HR range, analyst-validated, not extrapolated.
         </p>
       </CardBody>
     </Card>

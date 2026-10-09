@@ -37,7 +37,7 @@ export function EffortsPanel({ efforts, hasGps }: { efforts: Effort[]; hasGps: b
     <Card>
       <CardHeader
         title="Efforts"
-        subtitle={`${work.length} work ${work.length === 1 ? 'bout' : 'bouts'} detected from HR/speed — analyst-validated method.`}
+        subtitle={`${work.length} work ${work.length === 1 ? 'bout' : 'bouts'} detected from HR/speed, analyst-validated method.`}
       />
       <CardBody className="px-0 py-0">
         <div className="overflow-x-auto">

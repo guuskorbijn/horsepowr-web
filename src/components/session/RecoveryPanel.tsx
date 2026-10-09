@@ -26,7 +26,7 @@ export function RecoveryPanel({ recovery }: { recovery: RecoveryDescent | null }
     <Card>
       <CardHeader
         title="Recovery descent"
-        subtitle="Measured heart rate after the last detected effort — how far it fell, as a fact."
+        subtitle="Measured heart rate after the last detected effort: how far it fell, as a fact."
       />
       <CardBody className="space-y-4">
         <RecoveryChart recovery={recovery} />

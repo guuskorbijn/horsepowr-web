@@ -39,7 +39,7 @@ export function HorseFitnessTrend({ trend, maxHr }: { trend: SessionVIndex[]; ma
   return (
     <Card>
       <CardHeader
-        title="Fitness signal — HR vs speed over time"
+        title="Fitness signal: HR vs speed over time"
         subtitle="Each point is the speed at the chosen heart rate for that session. The curves show the HR–speed relationship across sessions."
       />
       <CardBody className="space-y-5">

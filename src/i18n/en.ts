@@ -39,7 +39,7 @@ export const en = {
   },
   command: {
     title: 'Command center',
-    description: 'Your stable at a glance — horses by location with their latest session.',
+    description: 'Your stable at a glance: horses by location with their latest session.',
     searchHorses: 'Search horses',
     errorLoad: 'Could not load your stable. Check your connection and try again.',
     emptyTitle: 'No horses yet',
@@ -70,7 +70,7 @@ export const en = {
     noLocations: 'No locations yet.',
     teamTitle: 'Team & roles',
     teamNote:
-      "Listing and inviting teammates isn't available from the web client yet — row-level security only exposes your own profile, and invites run through the existing mobile mechanism. Manage team members there for now.",
+      "Listing and inviting teammates isn't available from the web client yet. Row-level security only exposes your own profile, and invites run through the existing mobile mechanism. Manage team members there for now.",
     detailErrorLoad: 'Could not load this horse. Try again.',
     noSessionsTitle: 'No sessions yet',
     noSessionsDescription: 'Sessions recorded for this horse will appear here once synced.',
@@ -103,7 +103,7 @@ export const en = {
       sexLabel: 'Sex',
       sexUnspecified: 'Unspecified',
       dobLabel: 'Date of birth',
-      ageHint: 'derived — never stored',
+      ageHint: 'derived, never stored',
       breedLabel: 'Breed',
       breedPlaceholder: 'e.g. KWPN',
       levelLabel: 'Level',
@@ -111,10 +111,10 @@ export const en = {
       heightLabel: 'Height (cm)',
       weightLabel: 'Weight (kg)',
       chipLabel: 'Microchip number',
-      chipHint: 'Identifying data — kept within your organization.',
+      chipHint: 'Identifying data (kept within your organization).',
       chipPlaceholder: '15-digit chip number',
       maxHrLabel: 'Max heart rate (bpm)',
-      maxHrHint: 'Drives HR zones. Equine default 240 — confirm with your analyst.',
+      maxHrHint: 'Drives HR zones. Equine default 240. Confirm with your analyst.',
       activeLabel: 'Active',
       errorSave: 'Could not save the horse.',
     },
@@ -157,7 +157,7 @@ export const en = {
   },
   trendsPage: {
     title: 'Trends',
-    description: 'Descriptive trends over time — the measured numbers, plotted. No grades, no baselines.',
+    description: 'Descriptive trends over time: the measured numbers, plotted. No grades, no baselines.',
     errorLoad: 'Could not load horses. Try again.',
     emptyTitle: 'No horses yet',
     emptyDescription: 'Add horses and record sessions in the mobile app to see trends.',
@@ -171,7 +171,7 @@ export const en = {
   },
   analystPage: {
     title: 'Analyst',
-    description: "Ask about your stable's training data — grounded in the numbers, this stable only.",
+    description: "Ask about your stable's training data: grounded in the numbers, this stable only.",
     emptyTitle: 'Ask the analyst',
     emptyDescription:
       "Ask about your horses' sessions in plain language. It reads the data and answers with the numbers.",

@@ -29,7 +29,7 @@ export async function HorseDetailsCard({ horse }: { horse: HorseRow }) {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={horse.photo_url}
-              alt={`${t('horses.detail.discipline')} — ${horse.name}`}
+              alt={`${t('horses.detail.discipline')}: ${horse.name}`}
               className="h-40 w-40 shrink-0 rounded-lg border border-line bg-surface-muted object-cover"
             />
           ) : null}

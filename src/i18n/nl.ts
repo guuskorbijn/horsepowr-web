@@ -34,7 +34,7 @@ export const nl = {
   },
   command: {
     title: 'Overzicht',
-    description: 'Je stal in één oogopslag — paarden per locatie met hun laatste sessie.',
+    description: 'Je stal in één oogopslag: paarden per locatie met hun laatste sessie.',
     searchHorses: 'Paarden zoeken',
     errorLoad: 'Je stal kon niet worden geladen. Controleer je verbinding en probeer opnieuw.',
     emptyTitle: 'Nog geen paarden',
@@ -65,7 +65,7 @@ export const nl = {
     noLocations: 'Nog geen locaties.',
     teamTitle: 'Team & rollen',
     teamNote:
-      'Teamleden bekijken en uitnodigen kan nog niet vanuit de webclient — row-level security toont alleen je eigen profiel, en uitnodigingen lopen via de bestaande mobiele werkwijze. Beheer teamleden daar voorlopig.',
+      'Teamleden bekijken en uitnodigen kan nog niet vanuit de webclient. Row-level security toont alleen je eigen profiel, en uitnodigingen lopen via de bestaande mobiele werkwijze. Beheer teamleden daar voorlopig.',
     detailErrorLoad: 'Dit paard kon niet worden geladen. Probeer opnieuw.',
     noSessionsTitle: 'Nog geen sessies',
     noSessionsDescription: 'Sessies die voor dit paard zijn opgenomen verschijnen hier zodra ze gesynchroniseerd zijn.',
@@ -98,7 +98,7 @@ export const nl = {
       sexLabel: 'Geslacht',
       sexUnspecified: 'Niet opgegeven',
       dobLabel: 'Geboortedatum',
-      ageHint: 'afgeleid — nooit opgeslagen',
+      ageHint: 'afgeleid, nooit opgeslagen',
       breedLabel: 'Ras',
       breedPlaceholder: 'bijv. KWPN',
       levelLabel: 'Niveau',
@@ -106,10 +106,10 @@ export const nl = {
       heightLabel: 'Schofthoogte (cm)',
       weightLabel: 'Gewicht (kg)',
       chipLabel: 'Chipnummer',
-      chipHint: 'Identificerende gegevens — blijft binnen je organisatie.',
+      chipHint: 'Identificerende gegevens (blijft binnen je organisatie).',
       chipPlaceholder: '15-cijferig chipnummer',
       maxHrLabel: 'Maximale hartslag (bpm)',
-      maxHrHint: 'Bepaalt de HR-zones. Standaard 240 voor paarden — bevestig met je analist.',
+      maxHrHint: 'Bepaalt de HR-zones. Standaard 240 voor paarden. Bevestig met je analist.',
       activeLabel: 'Actief',
       errorSave: 'Het paard kon niet worden opgeslagen.',
     },
@@ -152,7 +152,7 @@ export const nl = {
   },
   trendsPage: {
     title: 'Trends',
-    description: 'Beschrijvende trends over tijd — de gemeten cijfers, uitgezet. Geen cijfers, geen normen.',
+    description: 'Beschrijvende trends over tijd: de gemeten cijfers, uitgezet. Geen cijfers, geen normen.',
     errorLoad: 'Paarden konden niet worden geladen. Probeer opnieuw.',
     emptyTitle: 'Nog geen paarden',
     emptyDescription: 'Voeg paarden toe en neem sessies op in de mobiele app om trends te zien.',
@@ -166,7 +166,7 @@ export const nl = {
   },
   analystPage: {
     title: 'Analist',
-    description: 'Stel vragen over de trainingsdata van je stal — onderbouwd met de cijfers, alleen deze stal.',
+    description: 'Stel vragen over de trainingsdata van je stal: onderbouwd met de cijfers, alleen deze stal.',
     emptyTitle: 'Vraag de analist',
     emptyDescription:
       'Stel in gewone taal een vraag over de sessies van je paarden. Hij leest de data en antwoordt met de cijfers.',
