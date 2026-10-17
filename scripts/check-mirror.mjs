@@ -25,6 +25,7 @@ const MIRROR = [
   ['src/services/calendar/occurrenceQuery.ts', 'src/services/calendar/occurrenceQuery.ts'],
   ['src/services/calendar/agendaGrouping.ts', 'src/services/calendar/agendaGrouping.ts'],
   ['src/components/loading/pulseGeometry.ts', 'src/components/brand/pulseGeometry.ts'],
+  ['src/constants/motion.ts', 'src/theme/motion.ts'],
 ];
 
 if (!existsSync(app)) {

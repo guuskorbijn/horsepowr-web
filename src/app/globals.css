@@ -241,3 +241,40 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Motion
+   ---------------------------------------------------------------------------
+   Durations come from src/theme/motion.ts, which is mirrored from the mobile
+   repo so both products animate on the same numbers. The CURVES are resolved
+   per platform — React Native's Easing there, cubic-bezier here — because that
+   is the one place the two genuinely differ.
+
+   Every rule is wrapped so that `prefers-reduced-motion: reduce` leaves the
+   element at its final state. Nothing here is load-bearing for comprehension;
+   if it never runs, the page still reads correctly.
+--------------------------------------------------------------------------- */
+
+@keyframes hp-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hp-fade-in {
+  /* ease-out, matching DESIGN_SYSTEM §10's "quick, ease-out" for entrances. */
+  animation-name: hp-fade-in;
+  animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+  animation-fill-mode: backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-fade-in {
+    animation: none;
+  }
+}

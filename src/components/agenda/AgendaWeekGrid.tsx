@@ -7,6 +7,7 @@ import { useTranslation } from '@/i18n/LocaleProvider';
 import { shiftWeek } from '@/services/calendar/agendaWeekService';
 import { formatZonedTime, zoneShortLabel } from '@/services/time/timezone';
 import { cn } from '@/lib/cn';
+import { FadeIn } from '@/components/motion/FadeIn';
 import type { AgendaWeek } from '@/services/calendar/agendaWeekService';
 import type { CalendarEventType, EventOccurrence } from '@/types/calendar';
 
@@ -169,15 +170,16 @@ export function AgendaWeekGrid({
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-7">
-          {week.days.map((day) => (
+          {week.days.map((day, dayIndex) => (
+            <FadeIn key={day.dayKey} index={dayIndex}>
             <DayColumn
-              key={day.dayKey}
               dayKey={day.dayKey}
               occurrences={day.occurrences}
               readerTimeZone={week.readerTimeZone}
               horseNames={horseNames}
               isToday={day.dayKey === todayKey}
             />
+            </FadeIn>
           ))}
         </div>
       )}

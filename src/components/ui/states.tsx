@@ -73,3 +73,62 @@ export function Skeleton({ className }: { className?: string }) {
     />
   );
 }
+
+/**
+ * A horse card's shape, for the command center while it loads.
+ *
+ * Matching the real card's rhythm is the entire point: a skeleton that does not
+ * match what follows makes the arrival worse, not better.
+ */
+export function SkeletonHorseCard() {
+  return (
+    <div className="rounded-lg border border-line bg-surface p-4">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-10 w-10 rounded-full" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-3 w-1/4" />
+        </div>
+      </div>
+      <div className="mt-4 space-y-2 rounded-md bg-surface-muted p-3">
+        <Skeleton className="h-3 w-2/3" />
+        <Skeleton className="h-5 w-1/3" />
+      </div>
+    </div>
+  );
+}
+
+/** A grid of them, for a page that has not resolved yet. */
+export function SkeletonCardGrid({ count = 6 }: { count?: number }) {
+  return (
+    <div
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      role="progressbar"
+      aria-label="Loading"
+    >
+      {Array.from({ length: count }, (_, i) => (
+        <SkeletonHorseCard key={i} />
+      ))}
+    </div>
+  );
+}
+
+/** A week of empty day columns, for the agenda. */
+export function SkeletonWeek() {
+  return (
+    <div
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-7"
+      role="progressbar"
+      aria-label="Loading"
+    >
+      {Array.from({ length: 7 }, (_, day) => (
+        <div key={day} className="space-y-2">
+          <Skeleton className="h-6 w-16" />
+          {Array.from({ length: 2 }, (_, row) => (
+            <Skeleton key={row} className="h-20 w-full rounded-lg" />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
