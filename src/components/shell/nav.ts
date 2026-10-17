@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import {
   LayoutDashboard,
+  CalendarDays,
   Activity,
   GitCompareArrows,
   TrendingUp,
@@ -22,6 +23,7 @@ export interface NavItem {
 /** Left sidebar nav. "Horses" doubles as the management home (WP-W10). */
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/', labelKey: 'nav.commandCenter', icon: LayoutDashboard },
+  { href: '/agenda', labelKey: 'nav.agenda', icon: CalendarDays },
   { href: '/sessions', labelKey: 'nav.sessions', icon: Activity },
   { href: '/compare', labelKey: 'nav.compare', icon: GitCompareArrows },
   { href: '/trends', labelKey: 'nav.trends', icon: TrendingUp },

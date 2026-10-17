@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { BrandLoader } from '@/components/brand/BrandLoader';
 
 /** Empty states invite action — they don't sit empty (design-system voice). */
 export function EmptyState({
@@ -35,8 +36,8 @@ export function EmptyState({
 
 export function LoadingState({ label = 'Loading…' }: { label?: string }) {
   return (
-    <div className="flex items-center justify-center gap-2 py-14 text-text-secondary">
-      <Loader2 size={18} className="animate-spin" aria-hidden />
+    <div className="flex flex-col items-center justify-center gap-3 py-14 text-text-secondary">
+      <BrandLoader width={88} className="text-primary" label={label} />
       <span className="text-[14px]">{label}</span>
     </div>
   );

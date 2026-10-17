@@ -1,5 +1,5 @@
 import { LayoutDashboard } from 'lucide-react';
-import { PageHeader } from '@/components/ui/PageHeader';
+import { DashboardHero } from '@/components/command/DashboardHero';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { requireSessionContext } from '@/lib/session';
@@ -26,11 +26,20 @@ async function load(): Promise<LoadResult> {
 }
 
 export default async function CommandCenterPage() {
-  const [result, t] = await Promise.all([load(), getServerT()]);
+  const [result, t, ctx] = await Promise.all([
+    load(),
+    getServerT(),
+    requireSessionContext(),
+  ]);
+  const orgName = ctx.org?.name ?? null;
 
   return (
     <>
-      <PageHeader title={t('command.title')} description={t('command.description')} />
+      <DashboardHero
+        title={t('command.title')}
+        description={t('command.description')}
+        orgName={orgName}
+      />
       {result.status === 'error' ? (
         <ErrorState description={t('command.errorLoad')} />
       ) : result.status === 'no-org' || result.horses.length === 0 ? (
