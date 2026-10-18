@@ -6,6 +6,10 @@ export interface ListSessionsOptions {
   /** Only sessions that have ended (ended_at not null). */
   finishedOnly?: boolean;
   limit?: number;
+  /** Inclusive lower bound on started_at, ISO. */
+  since?: string;
+  /** Exclusive upper bound on started_at, ISO. */
+  until?: string;
 }
 
 function applyOptions(
@@ -14,6 +18,10 @@ function applyOptions(
 ) {
   let q = query;
   if (options.finishedOnly) q = q.not('ended_at', 'is', null);
+  // Filters go on before order/limit: supabase-js returns a transform builder
+  // from those, which has no filter methods left on it.
+  if (options.since !== undefined) q = q.gte('started_at', options.since);
+  if (options.until !== undefined) q = q.lt('started_at', options.until);
   q = q.order('started_at', { ascending: false });
   if (options.limit) q = q.limit(options.limit);
   return q;

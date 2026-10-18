@@ -98,6 +98,11 @@ export type SessionRow = {
   training_type: TrainingType | null;
   environment: string | null;
   location_name: string | null;
+  /**
+   * The agenda item this recording was started from (Phase 1, live on remote).
+   * Optional here because older rows predate it and PostgREST returns null.
+   */
+  planned_event_id?: string | null;
   physical_rating: number | null;
   mental_rating: number | null;
   injury_concern: boolean;
