@@ -9,6 +9,7 @@ import { SessionCharts } from '@/components/session/SessionCharts';
 import { EffortsPanel } from '@/components/session/EffortsPanel';
 import { HrSpeedPanel } from '@/components/session/HrSpeedPanel';
 import { RecoveryPanel } from '@/components/session/RecoveryPanel';
+import { HrvPanel } from '@/components/session/HrvPanel';
 import { ClimbsPanel } from '@/components/session/ClimbsPanel';
 import { PrintReportHeader } from '@/components/session/PrintReportHeader';
 import { RouteMap } from '@/components/session/RouteMap';
@@ -141,6 +142,7 @@ export default async function SessionDetailPage({
         <HrSpeedPanel analysis={view.hrSpeed} maxHr={view.maxHr} />
 
         <RecoveryPanel recovery={view.recovery} />
+        <HrvPanel hrv={view.hrv} />
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="space-y-6">

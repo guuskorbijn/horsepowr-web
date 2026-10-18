@@ -30,6 +30,7 @@ import {
 } from '@/services/gradientService';
 import { analyzeHrSpeed, type HrSpeedAnalysis } from '@/services/hrSpeedService';
 import { buildRecoveryDescent, type RecoveryDescent } from '@/services/recoveryService';
+import { sessionHrv, type HrvResult } from '@/services/hrv/hrvService';
 import type { HorseRow, SessionRow } from '@/types/db';
 import type { ChartSeries, Effort, GaitBand, RoutePoint, SessionMetrics } from '@/types/view';
 
@@ -48,6 +49,8 @@ export interface SessionView {
   climbs: ClimbSegment[];
   hrSpeed: HrSpeedAnalysis;
   recovery: RecoveryDescent | null;
+  /** Beat-to-beat variability over the session's calmest stretch. */
+  hrv: HrvResult;
   zones: ZoneShare[];
   quality: RecordingQuality;
   summary: SessionSummary;
@@ -90,6 +93,9 @@ export async function loadSessionView(
   const climbs = analyzeClimbs(rows, session.started_at, gradientProfile);
   const hrSpeed = analyzeHrSpeed(rows, session.started_at);
   const recovery = buildRecoveryDescent(rows, session.started_at, efforts);
+  // Reads `measurements.rr_ms`, which every session has carried since the
+  // H10 integration and nothing had ever looked at.
+  const hrv = sessionHrv(rows);
 
   // Reuse the existing AI Edge Function; fall back to the deterministic summary.
   const aiLines = await invokeSessionSummary(supa, sessionId);
@@ -112,6 +118,7 @@ export async function loadSessionView(
     climbs,
     hrSpeed,
     recovery,
+    hrv,
     zones,
     quality,
     summary,
