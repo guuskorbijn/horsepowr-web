@@ -24,6 +24,7 @@ const MIRROR = [
   ['src/services/calendar/recurrenceService.ts', 'src/services/calendar/recurrenceService.ts'],
   ['src/services/calendar/occurrenceQuery.ts', 'src/services/calendar/occurrenceQuery.ts'],
   ['src/services/calendar/agendaGrouping.ts', 'src/services/calendar/agendaGrouping.ts'],
+  ['src/services/calendar/rescheduleService.ts', 'src/services/calendar/rescheduleService.ts'],
   ['src/components/loading/pulseGeometry.ts', 'src/components/brand/pulseGeometry.ts'],
   ['src/constants/motion.ts', 'src/theme/motion.ts'],
 ];

@@ -71,6 +71,13 @@ export const nl = {
       yearly: 'Elk jaar',
       custom: 'Eigen patroon',
     },
+    move: {
+      moved: 'Verplaatst naar',
+      undo: 'Ongedaan maken',
+      failed: 'Het item kon niet worden verplaatst. Er is niets gewijzigd.',
+      undoFailed: 'Het verplaatsen kon niet ongedaan worden gemaakt.',
+      dragHint: 'Sleep een item naar een andere dag om het te verplaatsen.',
+    },
     scope: {
       title: 'Pas deze wijziging toe op',
       thisOccurrence: 'Alleen deze keer',

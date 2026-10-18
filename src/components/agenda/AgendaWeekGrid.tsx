@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, CalendarDays, Plus } from 'lucide-react';
@@ -13,6 +13,14 @@ import {
   emptyFormValues,
   eventToFormValues,
 } from '@/services/calendar/eventFormMapper';
+import { getBrowserSupabase } from '@/lib/supabase/browser';
+import {
+  rescheduleOccurrenceToDay,
+  restoreOccurrenceTimes,
+  type OccurrenceTimes,
+} from '@/services/calendar/rescheduleOccurrence';
+import { notifyCalendarChange } from '@/services/notifications/notifyCalendarChange';
+import { log } from '@/lib/log';
 import { cn } from '@/lib/cn';
 import { FadeIn } from '@/components/motion/FadeIn';
 import { EventFormDialog } from '@/components/agenda/EventFormDialog';
@@ -67,6 +75,7 @@ function DayColumn({
   canEdit,
   onOpen,
   onAdd,
+  drag,
 }: {
   dayKey: string;
   occurrences: readonly EventOccurrence[];
@@ -76,6 +85,7 @@ function DayColumn({
   canEdit: boolean;
   onOpen: (occurrence: EventOccurrence) => void;
   onAdd: (dayKey: string) => void;
+  drag: DragApi;
 }) {
   const { t } = useTranslation();
   const weekday = new Date(`${dayKey}T00:00:00Z`).toLocaleDateString(undefined, {
@@ -84,8 +94,30 @@ function DayColumn({
   });
   const dayNumber = Number(dayKey.slice(8, 10));
 
+  const isDropTarget = drag.overDayKey === dayKey && drag.sourceDayKey !== dayKey;
+
   return (
-    <div className="group/day flex min-w-0 flex-col">
+    <div
+      className={cn(
+        'group/day flex min-w-0 flex-col rounded-lg transition-colors duration-150',
+        // The drop target is marked on the COLUMN rather than on a thin line
+        // between cards: the grid has no hour axis, so a drop means "this
+        // day" and the highlight should say exactly that much.
+        isDropTarget && 'bg-primary-soft ring-2 ring-primary ring-offset-2 ring-offset-app',
+      )}
+      onDragOver={(e) => {
+        if (!drag.active) return;
+        // Without preventDefault the browser refuses the drop outright.
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        drag.onDragOverDay(dayKey);
+      }}
+      onDrop={(e) => {
+        if (!drag.active) return;
+        e.preventDefault();
+        drag.onDropOnDay(dayKey);
+      }}
+    >
       <div
         className={cn(
           'mb-2 flex items-baseline gap-2 border-b border-line pb-2',
@@ -135,13 +167,27 @@ function DayColumn({
                 key={occurrence.key}
                 type="button"
                 onClick={() => onOpen(occurrence)}
+                // Dragging is a shortcut, never the only way: the same move is
+                // available from the detail dialog's date field, which is what
+                // keyboard and screen-reader users have. A drag-only
+                // reschedule would make the feature unusable for them.
+                draggable={canEdit}
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = 'move';
+                  // Firefox ignores a drag that carries no payload.
+                  e.dataTransfer.setData('text/plain', occurrence.key);
+                  drag.onDragStart(occurrence, dayKey);
+                }}
+                onDragEnd={drag.onDragEnd}
                 style={{ borderLeftColor: TYPE_ACCENT[occurrence.type] }}
                 className={cn(
                   'w-full rounded-lg border border-l-4 border-line p-2.5 text-left',
                   'transition-colors duration-150 hover:border-line-strong hover:bg-surface-muted',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                  canEdit && 'cursor-grab active:cursor-grabbing',
                   done ? 'bg-surface-muted' : 'bg-surface',
                   cancelled && 'opacity-60',
+                  drag.draggingKey === occurrence.key && 'opacity-40',
                 )}
               >
                 <div className="flex items-baseline gap-2">
@@ -175,6 +221,31 @@ function DayColumn({
       </div>
     </div>
   );
+}
+
+/**
+ * Everything the columns and cards need to take part in a drag.
+ *
+ * Passed as one object rather than eight props: a drag is a single piece of
+ * state that several components read, and threading it field by field is how
+ * one of them ends up out of step with the others.
+ */
+interface DragApi {
+  active: boolean;
+  draggingKey: string | null;
+  sourceDayKey: string | null;
+  overDayKey: string | null;
+  onDragStart: (occurrence: EventOccurrence, dayKey: string) => void;
+  onDragOverDay: (dayKey: string) => void;
+  onDropOnDay: (dayKey: string) => void;
+  onDragEnd: () => void;
+}
+
+/** A completed move, kept just long enough to offer an undo. */
+interface MovedNotice {
+  occurrence: EventOccurrence;
+  previous: OccurrenceTimes;
+  targetDayKey: string;
 }
 
 /** What the form dialog is currently editing, or null when it is closed. */
@@ -213,10 +284,133 @@ export function AgendaWeekGrid({
   const [selected, setSelected] = useState<EventOccurrence | null>(null);
   const [form, setForm] = useState<FormState | null>(null);
 
+  // Drag state. The occurrence being dragged lives in a ref rather than in
+  // state because `drop` must read it synchronously, and a state update
+  // scheduled by `dragstart` is not guaranteed to have landed by then.
+  const dragged = useRef<{ occurrence: EventOccurrence; dayKey: string } | null>(null);
+  const [draggingKey, setDraggingKey] = useState<string | null>(null);
+  // Mirrored into state purely so render can read it; the ref above is what
+  // `drop` reads synchronously.
+  const [sourceDayKey, setSourceDayKey] = useState<string | null>(null);
+  const [overDayKey, setOverDayKey] = useState<string | null>(null);
+  const [moving, setMoving] = useState(false);
+  const [moved, setMoved] = useState<MovedNotice | null>(null);
+  const [moveError, setMoveError] = useState<string | null>(null);
+
   // The page is a server component, so a write is reflected by re-running it
   // rather than by patching local state. One source of truth, no divergence
   // between what the grid shows and what the database holds.
   const refresh = (): void => router.refresh();
+
+  // The undo offer expires on its own. A bar that sits there forever becomes
+  // furniture, and a stale one invites undoing a move made minutes ago.
+  useEffect(() => {
+    if (moved === null) return;
+    const timer = setTimeout(() => setMoved(null), 10_000);
+    return () => clearTimeout(timer);
+  }, [moved]);
+
+  const endDrag = useCallback((): void => {
+    dragged.current = null;
+    setDraggingKey(null);
+    setSourceDayKey(null);
+    setOverDayKey(null);
+  }, []);
+
+  /**
+   * Commit a drop.
+   *
+   * The grid is not patched optimistically. A move can be refused by RLS or
+   * lost to a dead connection, and a card that slides to Thursday and stays
+   * there while the database still says Tuesday is worse than one that takes
+   * a moment to move. `router.refresh()` re-runs the server component, so
+   * what is on screen is always what was written.
+   */
+  const handleDrop = useCallback(
+    async (targetDayKey: string): Promise<void> => {
+      const payload = dragged.current;
+      endDrag();
+      if (payload === null || payload.dayKey === targetDayKey) return;
+
+      setMoving(true);
+      setMoveError(null);
+      try {
+        const result = await rescheduleOccurrenceToDay(getBrowserSupabase(), {
+          occurrence: payload.occurrence,
+          targetDayKey,
+          readerTimeZone: week.readerTimeZone,
+        });
+        if (result === null) return;
+        setMoved({
+          occurrence: payload.occurrence,
+          previous: result.previous,
+          targetDayKey,
+        });
+        await notifyCalendarChange({
+          eventId: payload.occurrence.event_id,
+          changedFields: ['starts_at'],
+          occurrenceStart: payload.occurrence.original_start,
+          previousStartsAt: result.previous.startsAt,
+        });
+        refresh();
+      } catch (err) {
+        log.error('agenda: could not move item', {
+          key: payload.occurrence.key,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        setMoveError(t('agenda.move.failed'));
+      } finally {
+        setMoving(false);
+      }
+    },
+    // `refresh` and `t` are stable for the lifetime of this component.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [endDrag, week.readerTimeZone],
+  );
+
+  const undoMove = useCallback(async (): Promise<void> => {
+    if (moved === null) return;
+    setMoving(true);
+    try {
+      await restoreOccurrenceTimes(
+        getBrowserSupabase(),
+        moved.occurrence,
+        moved.previous,
+      );
+      await notifyCalendarChange({
+        eventId: moved.occurrence.event_id,
+        changedFields: ['starts_at'],
+        occurrenceStart: moved.occurrence.original_start,
+      });
+      setMoved(null);
+      refresh();
+    } catch (err) {
+      log.error('agenda: could not undo a move', {
+        key: moved.occurrence.key,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      setMoveError(t('agenda.move.undoFailed'));
+    } finally {
+      setMoving(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moved]);
+
+  const drag: DragApi = {
+    active: draggingKey !== null,
+    draggingKey,
+    sourceDayKey,
+    overDayKey,
+    onDragStart: (occurrence, dayKey) => {
+      dragged.current = { occurrence, dayKey };
+      setDraggingKey(occurrence.key);
+      setSourceDayKey(dayKey);
+      setMoved(null);
+    },
+    onDragOverDay: setOverDayKey,
+    onDropOnDay: (dayKey) => void handleDrop(dayKey),
+    onDragEnd: endDrag,
+  };
 
   const openCreate = (dayKey: string): void =>
     setForm({
@@ -290,6 +484,13 @@ export function AgendaWeekGrid({
         </div>
       </div>
 
+      {/* Drag is invisible until you try it, so it gets one quiet line. Only
+          for people who can actually edit — telling a read-only viewer about
+          a gesture that will not work is worse than saying nothing. */}
+      {canEdit && !empty ? (
+        <p className="mb-3 text-[12px] text-text-tertiary">{t('agenda.move.dragHint')}</p>
+      ) : null}
+
       {empty ? (
         <EmptyState
           icon={<CalendarDays size={28} />}
@@ -311,11 +512,42 @@ export function AgendaWeekGrid({
                 canEdit={canEdit}
                 onOpen={setSelected}
                 onAdd={openCreate}
+                drag={drag}
               />
             </FadeIn>
           ))}
         </div>
       )}
+
+      {/* Move feedback. Anchored to the grid rather than floating over the
+          whole app: it is about the thing the user just dropped, and it
+          should disappear with the page it belongs to. */}
+      {moveError !== null ? (
+        <p
+          role="alert"
+          className="mt-4 rounded-md bg-[var(--pill-warning-bg)] px-3 py-2 text-[13px] text-[var(--pill-warning-text)]"
+        >
+          {moveError}
+        </p>
+      ) : moved !== null ? (
+        <div
+          role="status"
+          className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface-muted px-4 py-2.5"
+        >
+          <p className="text-[13px] text-text-primary">
+            {t('agenda.move.moved')} {moved.targetDayKey}
+          </p>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={moving}
+            onClick={() => void undoMove()}
+          >
+            {t('agenda.move.undo')}
+          </Button>
+        </div>
+      ) : null}
 
       {selected !== null ? (
         <OccurrenceDetailDialog

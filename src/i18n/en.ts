@@ -76,6 +76,13 @@ export const en = {
       yearly: 'Every year',
       custom: 'Custom pattern',
     },
+    move: {
+      moved: 'Moved to',
+      undo: 'Undo',
+      failed: 'Could not move the item. Nothing was changed.',
+      undoFailed: 'Could not undo the move.',
+      dragHint: 'Drag an item onto another day to reschedule it.',
+    },
     scope: {
       title: 'Apply this change to',
       thisOccurrence: 'Only this occurrence',
