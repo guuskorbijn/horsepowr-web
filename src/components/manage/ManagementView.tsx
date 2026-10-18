@@ -9,7 +9,6 @@ import { StatusPill } from '@/components/ui/StatusPill';
 import { HorseAvatar } from '@/components/horse/HorseAvatar';
 import { HorseFormDialog } from '@/components/manage/HorseFormDialog';
 import { LocationFormDialog } from '@/components/manage/LocationFormDialog';
-import { StableLogoCard } from '@/components/manage/StableLogoCard';
 import { useTranslation } from '@/i18n/LocaleProvider';
 import { cn } from '@/lib/cn';
 import type { HorseRow, LocationRow, UserRole } from '@/types/db';
@@ -26,14 +25,12 @@ function upsert<T extends { id: string }>(list: T[], item: T): T[] {
 
 export function ManagementView({
   orgId,
-  orgLogoUrl,
   initialHorses,
   initialLocations,
   canManage,
   currentUser,
 }: {
   orgId: string;
-  orgLogoUrl: string | null;
   initialHorses: HorseRow[];
   initialLocations: LocationRow[];
   canManage: boolean;
@@ -58,7 +55,6 @@ export function ManagementView({
 
   return (
     <div className="space-y-6">
-      <StableLogoCard orgId={orgId} canManage={canManage} initialLogoUrl={orgLogoUrl} />
 
       <div className="flex gap-1 border-b border-line">
         <TabButton active={tab === 'horses'} onClick={() => setTab('horses')} label={t('horses.tabHorses')} />

@@ -18,7 +18,7 @@ interface Group {
 }
 
 export function CommandCenter({ horses }: { horses: HorseLastSession[] }) {
-  const { org, locations, selectedLocationId } = useOrg();
+  const { locations, selectedLocationId } = useOrg();
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
 
@@ -47,17 +47,6 @@ export function CommandCenter({ horses }: { horses: HorseLastSession[] }) {
 
   return (
     <div className="space-y-8">
-      {org?.logo_url ? (
-        <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={org.logo_url}
-            alt={`${org.name} logo`}
-            className="h-[62.4px] max-w-[234px] object-contain"
-          />
-        </div>
-      ) : null}
-
       <div className="relative max-w-xs">
         <Search
           size={16}

@@ -9,12 +9,25 @@ import {
   listOverridesForEvents,
 } from '@/data/calendarRepository';
 import { listHorses } from '@/data/horseRepository';
+import { listOrgProfiles } from '@/data/profileRepository';
 import { buildAgendaWeek, weekWindow } from '@/services/calendar/agendaWeekService';
 import { AgendaWeekGrid } from '@/components/agenda/AgendaWeekGrid';
 import type { AgendaWeek } from '@/services/calendar/agendaWeekService';
+import type { HorseRow, LocationRow, ProfileRow } from '@/types/db';
+
+interface AgendaData {
+  week: AgendaWeek;
+  horseNames: Record<string, string>;
+  horses: HorseRow[];
+  locations: LocationRow[];
+  assignees: ProfileRow[];
+  canEdit: boolean;
+  orgId: string;
+  userId: string;
+}
 
 type LoadResult =
-  | { status: 'ok'; week: AgendaWeek; horseNames: Record<string, string> }
+  | ({ status: 'ok' } & AgendaData)
   | { status: 'error' }
   | { status: 'no-org' };
 
@@ -25,11 +38,10 @@ type LoadResult =
  * products should genuinely differ: a laptop has the room, and planning a week
  * is desk work while executing a day is not.
  *
- * Read-only in this build. Writing an agenda item from the browser is a
- * separate piece of work — not because the UI is hard, but because the mobile
- * write path is built around an offline outbox and a conflict policy, and a
- * browser needs neither. Mirroring that machinery would be mirroring the hard
- * part for none of the benefit.
+ * Readable by everyone in the org, writable by a trainer — the same split RLS
+ * enforces, mirrored in the UI so a read-only role is never shown a button the
+ * database would refuse. The write path itself is plain and online; the
+ * repository explains why it does not reproduce the phone's offline outbox.
  */
 async function load(anchorDayKey: string | null): Promise<LoadResult> {
   const ctx = await requireSessionContext();
@@ -43,7 +55,10 @@ async function load(anchorDayKey: string | null): Promise<LoadResult> {
       supa,
       events.map((event) => event.id),
     );
-    const horses = await listHorses(supa, ctx.org.id);
+    const [horses, assignees] = await Promise.all([
+      listHorses(supa, ctx.org.id),
+      listOrgProfiles(supa, ctx.org.id),
+    ]);
 
     const horseNames: Record<string, string> = {};
     for (const horse of horses) horseNames[horse.id] = horse.name;
@@ -52,6 +67,12 @@ async function load(anchorDayKey: string | null): Promise<LoadResult> {
       status: 'ok',
       week: buildAgendaWeek({ window, events, overrides }),
       horseNames,
+      horses,
+      locations: ctx.locations,
+      assignees,
+      canEdit: ctx.capabilities.canEdit,
+      orgId: ctx.org.id,
+      userId: ctx.userId,
     };
   } catch {
     return { status: 'error' };
@@ -89,6 +110,12 @@ export default async function AgendaPage({
           week={result.week}
           horseNames={result.horseNames}
           empty={empty}
+          canEdit={result.canEdit}
+          orgId={result.orgId}
+          userId={result.userId}
+          horses={result.horses}
+          locations={result.locations}
+          assignees={result.assignees}
         />
       )}
     </>

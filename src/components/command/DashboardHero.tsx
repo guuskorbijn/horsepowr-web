@@ -3,28 +3,40 @@ import { LogoMark } from '@/components/brand/Logo';
 /**
  * The dashboard's opening.
  *
- * The mark earns its place HERE and nowhere else in the product. On a phone
- * every screen is unambiguously this app, so the mobile build carries no logo
- * in any header; in a browser it is one tab among twenty, and the first thing
- * on the landing page is where that ambiguity is worth resolving.
+ * ONE place for a logo, and it is here. The org's own mark leads when the
+ * stable has uploaded one, because the page should open with whose stable this
+ * is rather than whose software; the HorsePowr mark stands in when it has not.
+ * It used to float loose between the heading and the search box, which read as
+ * a stray image rather than a masthead.
  *
- * Sized and spaced to read as a masthead rather than a badge: the mark is large
- * enough to be the first thing seen, and the stable's own name sits above the
- * title so the page opens with WHOSE stable this is, not whose software.
+ * The mobile app carries no logo in any header at all — on a phone every
+ * screen is unambiguously this app. A browser tab is not, and this is the one
+ * screen where resolving that is worth the space.
  */
 export function DashboardHero({
   title,
   description,
   orgName,
+  orgLogoUrl,
 }: {
   title: string;
   description: string;
   orgName: string | null;
+  orgLogoUrl: string | null;
 }) {
   return (
-    <div className="mb-8 flex items-start gap-4">
-      <LogoMark size={48} className="mt-0.5 shrink-0" />
-      <div>
+    <div className="mb-8 flex items-center gap-5">
+      {orgLogoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={orgLogoUrl}
+          alt={orgName ? `${orgName} logo` : 'Stable logo'}
+          className="h-14 w-14 shrink-0 rounded-xl object-contain"
+        />
+      ) : (
+        <LogoMark size={56} className="shrink-0" />
+      )}
+      <div className="min-w-0">
         {orgName ? (
           <p className="text-[13px] font-medium uppercase tracking-wide text-text-tertiary">
             {orgName}

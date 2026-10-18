@@ -12,18 +12,11 @@
  */
 import type Anthropic from '@anthropic-ai/sdk';
 import type { Supa } from '@/lib/supabase/types';
-import type { TrainingType } from '@/types/db';
+import { TRAINING_TYPES, type TrainingType } from '@/types/db';
 import { listHorsesForAnalyst, listSessionsForAnalyst } from '@/services/analyst/lists';
 import { getSessionForAnalyst } from '@/services/analyst/sessionDetail';
 import type { ListHorsesInput, ListSessionsInput, GetSessionInput } from '@/services/analyst/types';
 import { MAX_SERIES_POINTS } from '@/services/analyst/streamCorrelation';
-
-const TRAINING_TYPES: readonly TrainingType[] = [
-  'dressage',
-  'cross_country',
-  'conditioning',
-  'other',
-];
 
 /** The tool schemas advertised to the model. */
 export const ANALYST_TOOLS: Anthropic.Tool[] = [

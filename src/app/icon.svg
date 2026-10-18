@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="HorsePowr">
+  <!-- The HorsePowr mark: a pulse waveform in a rounded blue tile. Kept in sync
+       with <LogoMark> in src/components/brand/Logo.tsx by hand; the stroke is a
+       little heavier here because a favicon is read at 16px. -->
+  <rect width="48" height="48" rx="12" fill="#0058A2"/>
+  <path d="M9 24 h7 l3 -9 l5 18 l3 -11 l2 4 h10"
+        fill="none" stroke="#FFFFFF" stroke-width="3.2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

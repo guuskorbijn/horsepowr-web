@@ -32,6 +32,7 @@ export default async function CommandCenterPage() {
     requireSessionContext(),
   ]);
   const orgName = ctx.org?.name ?? null;
+  const orgLogoUrl = ctx.org?.logo_url ?? null;
 
   return (
     <>
@@ -39,6 +40,7 @@ export default async function CommandCenterPage() {
         title={t('command.title')}
         description={t('command.description')}
         orgName={orgName}
+        orgLogoUrl={orgLogoUrl}
       />
       {result.status === 'error' ? (
         <ErrorState description={t('command.errorLoad')} />

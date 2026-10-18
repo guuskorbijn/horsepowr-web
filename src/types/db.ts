@@ -1,3 +1,4 @@
+import type { CalendarEventStatus, CalendarEventType } from '@/types/calendar';
 /**
  * Database types — hand-authored mirror of the HorsePowr Supabase schema.
  *
@@ -21,6 +22,22 @@ export type TrainingType =
   | 'cross_country'
   | 'conditioning'
   | 'other';
+
+/** The vocabulary, as a value. Mirrors RN `src/types/session.ts`. */
+export const TRAINING_TYPES: readonly TrainingType[] = [
+  'dressage',
+  'cross_country',
+  'conditioning',
+  'other',
+] as const;
+
+/** Narrows a stored string to the known vocabulary, or null. */
+export function asTrainingType(value: string | null | undefined): TrainingType | null {
+  if (value == null) return null;
+  return (TRAINING_TYPES as readonly string[]).includes(value)
+    ? (value as TrainingType)
+    : null;
+}
 
 export type OrganizationRow = {
   id: string;
@@ -115,6 +132,60 @@ export type GaitSegmentJson = {
   endTs: number;
 }
 
+
+/**
+ * `calendar_events` as PostgREST returns it. Mirrors the RN migration
+ * 20261015000000_calendar_events.sql; the domain shape (with `targets` parsed)
+ * lives in `src/types/calendar.ts`.
+ *
+ * `targets` is `unknown` on purpose: it is jsonb, and the repository runs it
+ * through the zod schema rather than trusting the column's shape.
+ *
+ * `training_type` is optional because the migration that adds it is still a
+ * proposal on the RN side. PostgREST simply omits a column it does not have,
+ * and the repository drops it from writes when the server rejects it.
+ */
+export type CalendarEventRow = {
+  id: string;
+  org_id: string;
+  horse_id: string | null;
+  type: CalendarEventType;
+  title: string;
+  notes: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  all_day: boolean;
+  timezone: string;
+  location_id: string | null;
+  assignee_id: string | null;
+  status: CalendarEventStatus;
+  created_by: string;
+  targets: unknown;
+  training_type?: string | null;
+  recurrence_rule: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/** `calendar_event_overrides` as PostgREST returns it. */
+export type CalendarEventOverrideRow = {
+  id: string;
+  event_id: string;
+  original_start: string;
+  cancelled: boolean;
+  starts_at: string | null;
+  ends_at: string | null;
+  title: string | null;
+  notes: string | null;
+  assignee_id: string | null;
+  status: CalendarEventStatus | null;
+  targets: unknown;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
 type InsertOf<T, Optional extends keyof T> = Omit<T, Optional> & Partial<Pick<T, Optional>>;
 
 /** Per-table shape matching `supabase gen types` output (incl. Relationships,
@@ -163,6 +234,23 @@ export interface Database {
         InsertOf<
           MeasurementRow,
           'id' | 'hr_bpm' | 'rr_ms' | 'speed_ms' | 'altitude_m' | 'lat' | 'lng'
+        >
+      >;
+      calendar_events: TableDef<
+        CalendarEventRow,
+        InsertOf<
+          CalendarEventRow,
+          | 'created_at' | 'updated_at' | 'deleted_at' | 'notes' | 'ends_at'
+          | 'all_day' | 'horse_id' | 'location_id' | 'assignee_id' | 'status'
+          | 'targets' | 'training_type' | 'recurrence_rule'
+        >
+      >;
+      calendar_event_overrides: TableDef<
+        CalendarEventOverrideRow,
+        InsertOf<
+          CalendarEventOverrideRow,
+          | 'created_at' | 'updated_at' | 'deleted_at' | 'cancelled' | 'starts_at'
+          | 'ends_at' | 'title' | 'notes' | 'assignee_id' | 'status' | 'targets'
         >
       >;
       session_gait_segments: TableDef<

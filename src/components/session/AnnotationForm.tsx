@@ -15,11 +15,9 @@ import {
   type SessionAnnotationInput,
 } from '@/data/annotationRepository';
 import { TRAINING_TYPE_LABELS, ratingLabel } from '@/services/labels';
-import type { TrainingType } from '@/types/db';
+import { TRAINING_TYPES, type TrainingType } from '@/types/db';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
-
-const TRAINING_TYPES: TrainingType[] = ['dressage', 'cross_country', 'conditioning', 'other'];
 
 export function AnnotationForm({
   sessionId,
