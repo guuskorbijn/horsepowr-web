@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, FileText } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { StatusPill } from '@/components/ui/StatusPill';
@@ -57,7 +57,21 @@ export default async function HorseDetailPage({
       <PageHeader
         title={horse.name}
         description={horse.discipline ?? t('horses.noDisciplineSet')}
-        action={horse.active ? undefined : <StatusPill tone="muted">{t('horses.inactive')}</StatusPill>}
+        action={
+          <div className="flex items-center gap-3">
+            {horse.active ? null : (
+              <StatusPill tone="muted">{t('horses.inactive')}</StatusPill>
+            )}
+            {/* The record that leaves with the horse: sale, insurer, vet. */}
+            <Link
+              href={`/horses/${horse.id}/dossier`}
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-line-strong px-3 text-[13px] font-medium text-text-primary hover:bg-surface-muted"
+            >
+              <FileText size={15} />
+              {t('dossier.title')}
+            </Link>
+          </div>
+        }
       />
       <div className="space-y-6">
         <HorseDetailsCard horse={horse} />
