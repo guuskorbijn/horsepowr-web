@@ -52,6 +52,7 @@ export const en = {
     wholeStable: 'Whole stable',
     cancelled: 'Cancelled',
     done: 'Done',
+    thisWeek: 'This week',
     previousWeek: 'Previous week',
     nextWeek: 'Next week',
     addButton: 'New item',

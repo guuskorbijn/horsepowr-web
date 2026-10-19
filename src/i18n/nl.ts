@@ -47,6 +47,7 @@ export const nl = {
     wholeStable: 'Hele stal',
     cancelled: 'Geannuleerd',
     done: 'Gedaan',
+    thisWeek: 'Deze week',
     previousWeek: 'Vorige week',
     nextWeek: 'Volgende week',
     addButton: 'Nieuw item',

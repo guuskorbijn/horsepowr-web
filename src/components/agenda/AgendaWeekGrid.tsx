@@ -280,6 +280,7 @@ export function AgendaWeekGrid({
   const { t } = useTranslation();
   const router = useRouter();
   const todayKey = new Date().toISOString().slice(0, 10);
+  const showsToday = week.days.some((day) => day.dayKey === todayKey);
 
   const [selected, setSelected] = useState<EventOccurrence | null>(null);
   const [form, setForm] = useState<FormState | null>(null);
@@ -458,9 +459,22 @@ export function AgendaWeekGrid({
         >
           <ChevronLeft size={18} />
         </Link>
-        <p className="text-[14px] font-medium text-text-primary">
-          {week.startDayKey} &ndash; {week.endDayKey}
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-[14px] font-medium text-text-primary">
+            {week.startDayKey} &ndash; {week.endDayKey}
+          </p>
+          {/* Paging away from this week used to be one-way: the arrows move a
+              week at a time and nothing brought you back, so finding today
+              again meant counting clicks. */}
+          {!showsToday ? (
+            <Link
+              href="/agenda"
+              className="rounded-md border border-line-strong px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface-muted hover:text-text-primary"
+            >
+              {t('agenda.thisWeek')}
+            </Link>
+          ) : null}
+        </div>
         <div className="flex items-center gap-2">
           <Link
             href={`/agenda?week=${shiftWeek(week.startDayKey, 1)}`}

@@ -132,3 +132,76 @@ export function SkeletonWeek() {
     </div>
   );
 }
+
+/**
+ * A table's shape, for a page whose answer is rows.
+ *
+ * `cols` is honoured rather than guessed because the skeleton's column rhythm
+ * is the part the eye locks onto; a four-column shimmer followed by a
+ * seven-column table is a worse arrival than no skeleton at all.
+ */
+export function SkeletonTable({
+  rows = 6,
+  cols = 4,
+}: {
+  rows?: number;
+  cols?: number;
+}) {
+  return (
+    <div
+      className="overflow-hidden rounded-xl border border-line bg-surface"
+      role="progressbar"
+      aria-label="Loading"
+    >
+      <div className="border-b border-line px-5 py-3.5">
+        <Skeleton className="h-4 w-40" />
+      </div>
+      <div className="divide-y divide-line">
+        {Array.from({ length: rows }, (_, row) => (
+          <div key={row} className="flex items-center gap-4 px-5 py-3">
+            {Array.from({ length: cols }, (_, col) => (
+              <Skeleton
+                key={col}
+                // The first column is a name and the rest are figures, so the
+                // first is wide and the others are not.
+                className={cn('h-4', col === 0 ? 'flex-[2]' : 'flex-1')}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Stacked card outlines, for a detail page assembled from panels. */
+export function SkeletonPanels({
+  count = 3,
+  tiles = false,
+}: {
+  count?: number;
+  /** Lead with a row of figure tiles, as the session and stable pages do. */
+  tiles?: boolean;
+}) {
+  return (
+    <div className="space-y-5" role="progressbar" aria-label="Loading">
+      {tiles ? (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {Array.from({ length: 4 }, (_, tile) => (
+            <div key={tile} className="rounded-lg border border-line bg-surface px-4 py-3">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="mt-2 h-7 w-20" />
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {Array.from({ length: count }, (_, panel) => (
+        <div key={panel} className="rounded-xl border border-line bg-surface p-5">
+          <Skeleton className="h-4 w-44" />
+          <Skeleton className="mt-2 h-3 w-64" />
+          <Skeleton className="mt-5 h-48 w-full rounded-lg" />
+        </div>
+      ))}
+    </div>
+  );
+}

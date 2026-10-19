@@ -77,6 +77,9 @@ export function StableWeekView({
 }) {
   const { t } = useTranslation();
   const { totals } = week;
+  // The same one-way-paging problem the agenda had.
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const showsToday = todayKey >= startDayKey && todayKey <= endDayKey;
   const hours = Math.floor(totals.recordedMinutes / 60);
   const minutes = totals.recordedMinutes % 60;
 
@@ -90,9 +93,19 @@ export function StableWeekView({
         >
           <ChevronLeft size={18} />
         </Link>
-        <p className="text-[14px] font-medium text-text-primary">
-          {startDayKey} &ndash; {endDayKey}
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-[14px] font-medium text-text-primary">
+            {startDayKey} &ndash; {endDayKey}
+          </p>
+          {!showsToday ? (
+            <Link
+              href="/stable"
+              className="rounded-md border border-line-strong px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface-muted hover:text-text-primary"
+            >
+              {t('agenda.thisWeek')}
+            </Link>
+          ) : null}
+        </div>
         <Link
           href={`/stable?week=${shiftWeek(startDayKey, 1)}`}
           aria-label={t('agenda.nextWeek')}
