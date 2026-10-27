@@ -1,5 +1,6 @@
 /**
  * MIRRORED FROM THE MOBILE REPO — do not edit here.
+ * Vendored from the mobile repo, commit cc497bd, do not edit here.
  *
  * Source: horsepowr/src/schemas/trainingTargets.ts
  *

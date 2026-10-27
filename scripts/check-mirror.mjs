@@ -48,16 +48,34 @@ function normalise(text) {
     .trim();
 }
 
+/** The mobile commit a mirrored file says it was vendored from, or null. */
+function pinnedCommit(text) {
+  const match = /Vendored from the mobile repo, commit ([0-9a-f]{7,40})/.exec(text);
+  return match ? match[1] : null;
+}
+
 let drifted = 0;
+let unpinned = 0;
 for (const [source, mirror] of MIRROR) {
   const a = readFileSync(resolve(app, source), 'utf8').trim();
-  const b = normalise(readFileSync(resolve(web, mirror), 'utf8'));
+  const raw = readFileSync(resolve(web, mirror), 'utf8');
+  // Content is what decides drift; the pinned commit is provenance, so a
+  // reader of the copy can find the exact source it was taken from.
+  if (pinnedCommit(raw) === null) {
+    unpinned += 1;
+    console.error(`UNPINNED  ${mirror} has no "Vendored from the mobile repo, commit <hash>" line`);
+  }
+  const b = normalise(raw);
   if (a !== b) {
     drifted += 1;
     console.error(`DRIFT  ${mirror} differs from horsepowr/${source}`);
   }
 }
 
+if (unpinned > 0) {
+  console.error(`\n${unpinned} mirrored file(s) do not name the commit they were vendored from.`);
+  process.exit(1);
+}
 if (drifted > 0) {
   console.error(`\n${drifted} mirrored file(s) drifted. Re-mirror from the mobile repo.`);
   process.exit(1);
