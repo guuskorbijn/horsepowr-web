@@ -5,38 +5,7 @@ import {
   listEventsInWindow,
   listOverrides,
 } from '@/data/calendarRepository';
-import type { Supa } from '@/lib/supabase/types';
-
-/**
- * A recording stand-in for the PostgREST query builder: every filter call is
- * captured, and awaiting the chain asks `respond` for the page. Enough to
- * assert WHAT is asked of the database and how pagination behaves, without a
- * database.
- */
-interface Call {
-  method: string;
-  args: unknown[];
-}
-
-type Responder = (calls: Call[]) => { data: unknown[] | null; error: { message: string; code?: string } | null };
-
-function fakeSupa(respond: Responder): { supa: Supa; queries: Call[][] } {
-  const queries: Call[][] = [];
-  const from = (table: string) => {
-    const calls: Call[] = [{ method: 'from', args: [table] }];
-    queries.push(calls);
-    const builder: Record<string, unknown> = {};
-    for (const method of ['select', 'eq', 'is', 'lt', 'or', 'not', 'in', 'order', 'range']) {
-      builder[method] = (...args: unknown[]) => {
-        calls.push({ method, args });
-        return builder;
-      };
-    }
-    builder.then = (resolve: (value: unknown) => unknown) => resolve(respond(calls));
-    return builder;
-  };
-  return { supa: { from } as unknown as Supa, queries };
-}
+import { fakeSupa, rangeOf, type Call } from '@/test/fakeSupabase';
 
 function row(id: string, patch: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -61,11 +30,6 @@ function row(id: string, patch: Record<string, unknown> = {}): Record<string, un
     deleted_at: null,
     ...patch,
   };
-}
-
-function rangeOf(calls: Call[]): [number, number] {
-  const call = calls.find((c) => c.method === 'range');
-  return call ? [call.args[0] as number, call.args[1] as number] : [0, 0];
 }
 
 const isRecurringQuery = (calls: Call[]) => calls.some((c) => c.method === 'not');

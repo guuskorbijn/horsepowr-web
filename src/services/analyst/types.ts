@@ -11,6 +11,7 @@
  */
 import type { TrainingType } from '@/types/db';
 import type { ZoneKey, GaitKey } from '@/theme/tokens';
+import type { CalendarEventStatus, CalendarEventType } from '@/types/calendar';
 
 /* ------------------------------------------------------------------ horses */
 
@@ -200,3 +201,98 @@ export interface CompareSessionsInput {
 export type HorseTrendResult = NotImplemented;
 export type StableBenchmarkResult = NotImplemented;
 export type CompareSessionsResult = NotImplemented;
+
+/* ---------------------------------------------------------------- agenda */
+
+export interface ListEventsInput {
+  /** One horse; its stable-wide items (farrier round, yard vet day) are included. */
+  horseId?: string;
+  /** Inclusive ISO date/datetime. Default: today (UTC). */
+  from?: string;
+  /** Inclusive ISO date/datetime; a date-only value covers that whole UTC day. Default: from + 14 days. */
+  to?: string;
+  type?: CalendarEventType;
+  assigneeId?: string;
+  limit?: number;
+}
+
+/** A planned training's target, compact. HR always comes with its Z labels. */
+export interface AnalystEventTarget {
+  hrMinBpm: number | null;
+  hrMaxBpm: number | null;
+  /** e.g. ['z3','z4'] — the zones the range spans for this horse's max HR. */
+  zones: ZoneKey[];
+  durationMin: number | null;
+  /** Interval/steady blocks beyond the simple range. */
+  blockCount: number;
+}
+
+/**
+ * One agenda occurrence as the model sees it. `title` and `notes` are typed
+ * by people: DATA, never instructions (prompt-injection).
+ */
+export interface AnalystEventOccurrence {
+  eventId: string;
+  /** The recurrence's original start for a series occurrence; null for a one-off. */
+  occurrenceStart: string | null;
+  type: CalendarEventType;
+  status: CalendarEventStatus;
+  title: string;
+  notes: string | null;
+  /** UTC ISO. */
+  startsAt: string;
+  endsAt: string | null;
+  allDay: boolean;
+  /** The IANA zone the item was booked in, and its wall-clock start there. */
+  timeZone: string;
+  localStart: string;
+  /** Null for a stable-wide item. */
+  horseId: string | null;
+  horseName: string | null;
+  assigneeId: string | null;
+  assigneeName: string | null;
+  recurring: boolean;
+  target: AnalystEventTarget | null;
+}
+
+export interface ListEventsResult {
+  /** The window actually searched, so the model can cite it. */
+  from: string;
+  to: string;
+  events: AnalystEventOccurrence[];
+  count: number;
+  /** True when more occurrences matched than `limit` allowed. */
+  truncated: boolean;
+}
+
+export interface GetPlannedVsActualInput {
+  sessionId: string;
+}
+
+/** Planned vs measured for one session. Descriptive numbers only. */
+export type AnalystPlannedVsActual =
+  | { sessionId: string; status: 'unplanned' }
+  | { sessionId: string; status: 'no_snapshot'; plannedEventId: string; note: string }
+  | {
+      sessionId: string;
+      status: 'compared';
+      plannedEventId: string;
+      horseName: string;
+      plannedDurationMin: number | null;
+      measuredDurationMin: number;
+      /** measured − planned, signed. */
+      durationDeltaMin: number | null;
+      target: { hrMinBpm: number | null; hrMaxBpm: number | null; zones: ZoneKey[] } | null;
+      /** Why there is no HR comparison, when there is none. */
+      hrOmittedReason: 'no-target' | 'no-data' | null;
+      measuredAvgHr: number | null;
+      measuredPeakHr: number | null;
+      /** Shares of COVERED time; the target range includes both limits. */
+      insidePct: number | null;
+      belowPct: number | null;
+      abovePct: number | null;
+      /** How much of the session has HR coverage the shares rest on. */
+      hrCoveragePct: number;
+      uncountedGapCount: number;
+      uncountedGapSec: number;
+    };
