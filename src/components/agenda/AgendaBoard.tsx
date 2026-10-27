@@ -1,14 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, CalendarDays, Plus } from 'lucide-react';
+import { CalendarDays, Plus } from 'lucide-react';
 import { EmptyState } from '@/components/ui/states';
 import { Button } from '@/components/ui/Button';
 import { useTranslation } from '@/i18n/LocaleProvider';
-import { shiftWeek } from '@/services/calendar/agendaWeekService';
-import { formatZonedTime, zoneShortLabel } from '@/services/time/timezone';
+import {
+  formatHrRange,
+  formatZoneSpan,
+  type Agenda,
+  type AgendaItem,
+} from '@/services/calendar/agendaService';
 import {
   emptyFormValues,
   eventToFormValues,
@@ -25,7 +28,6 @@ import { cn } from '@/lib/cn';
 import { FadeIn } from '@/components/motion/FadeIn';
 import { EventFormDialog } from '@/components/agenda/EventFormDialog';
 import { OccurrenceDetailDialog } from '@/components/agenda/OccurrenceDetailDialog';
-import type { AgendaWeek } from '@/services/calendar/agendaWeekService';
 import type { CalendarEventFormValues } from '@/types/calendarForm';
 import type {
   CalendarEvent,
@@ -35,7 +37,7 @@ import type {
 import type { HorseRow, LocationRow, ProfileRow } from '@/types/db';
 
 /**
- * Seven days side by side.
+ * A day, or seven days side by side.
  *
  * The visual language matches the phone deliberately — the same type accents,
  * the same "form not verdict" treatment of state — so a trainer who plans on a
@@ -66,34 +68,133 @@ const TYPE_ACCENT: Record<CalendarEventType, string> = {
   other: 'var(--line-strong)',
 };
 
+function weekdayLabel(dayKey: string, long: boolean): string {
+  return new Date(`${dayKey}T00:00:00Z`).toLocaleDateString(undefined, {
+    weekday: long ? 'long' : 'short',
+    timeZone: 'UTC',
+  });
+}
+
+function TargetLine({ item }: { item: AgendaItem }) {
+  const { t } = useTranslation();
+  const target = item.target;
+  if (target === null) return null;
+  const hr = formatHrRange(target.hrMinBpm, target.hrMaxBpm);
+  const parts: string[] = [];
+  // An HR is never printed without its zone label (DESIGN_SYSTEM §11).
+  if (hr !== null) parts.push(`${hr} · ${formatZoneSpan(target.zones)}`);
+  if (target.durationMin !== null) parts.push(`${target.durationMin} min`);
+  if (target.blockCount > 0) parts.push(`${target.blockCount} ${t('agenda.blocks')}`);
+  if (parts.length === 0) return null;
+  return (
+    <p className="mt-1 text-[12px] tabular-nums text-text-secondary">
+      <span className="sr-only">{t('agenda.detail.targetLabel')}: </span>
+      {parts.join(' · ')}
+    </p>
+  );
+}
+
+function ItemCard({
+  item,
+  dayKey,
+  horseNames,
+  canEdit,
+  onOpen,
+  drag,
+}: {
+  item: AgendaItem;
+  dayKey: string;
+  horseNames: Record<string, string>;
+  canEdit: boolean;
+  onOpen: (occurrence: EventOccurrence) => void;
+  drag: DragApi;
+}) {
+  const { t } = useTranslation();
+  const { occurrence, cancelled, done } = item;
+  const horse =
+    occurrence.horse_id === null
+      ? t('agenda.wholeStable')
+      : (horseNames[occurrence.horse_id] ?? t('agenda.wholeStable'));
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(occurrence)}
+      // Dragging is a shortcut, never the only way: the same move is
+      // available from the detail dialog's date field, which is what
+      // keyboard and screen-reader users have. A drag-only
+      // reschedule would make the feature unusable for them.
+      draggable={canEdit}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        // Firefox ignores a drag that carries no payload.
+        e.dataTransfer.setData('text/plain', occurrence.key);
+        drag.onDragStart(occurrence, dayKey);
+      }}
+      onDragEnd={drag.onDragEnd}
+      style={{ borderLeftColor: TYPE_ACCENT[occurrence.type] }}
+      className={cn(
+        'min-h-11 w-full rounded-lg border border-l-4 border-line p-2.5 text-left',
+        'transition-colors duration-150 hover:border-line-strong hover:bg-surface-muted',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+        canEdit && 'cursor-grab active:cursor-grabbing',
+        done ? 'bg-surface-muted' : 'bg-surface',
+        cancelled && 'opacity-60',
+        drag.draggingKey === occurrence.key && 'opacity-40',
+      )}
+    >
+      <div className="flex flex-wrap items-baseline gap-x-2">
+        <span className="font-mono text-[12px] tabular-nums text-text-primary">
+          {item.readerTime ?? t('agenda.allDay')}
+        </span>
+        <span className="text-[11px] text-text-tertiary">{t(`agenda.type.${occurrence.type}`)}</span>
+        {item.eventZoneLabel !== null ? (
+          // The booked time on the event's own clock: a Mexico vet visit is
+          // at 09:00 in Mexico City whatever hour it is in Breda.
+          <span className="text-[11px] tabular-nums text-text-tertiary">
+            {item.eventLocalTime !== null ? `${item.eventLocalTime} ` : ''}
+            {item.eventZoneLabel}
+          </span>
+        ) : null}
+      </div>
+      <p className={cn('mt-0.5 text-[14px] text-text-primary', cancelled && 'line-through')}>
+        {occurrence.title}
+      </p>
+      <p className="text-[12px] text-text-secondary">{horse}</p>
+      {!cancelled ? <TargetLine item={item} /> : null}
+      {cancelled ? (
+        <p className="mt-1 text-[11px] text-danger">{t('agenda.cancelled')}</p>
+      ) : done ? (
+        <p className="mt-1 text-[11px] text-text-secondary">{t('agenda.done')}</p>
+      ) : null}
+    </button>
+  );
+}
+
 function DayColumn({
   dayKey,
-  occurrences,
-  readerTimeZone,
+  items,
   horseNames,
   isToday,
+  wide,
   canEdit,
   onOpen,
   onAdd,
   drag,
 }: {
   dayKey: string;
-  occurrences: readonly EventOccurrence[];
-  readerTimeZone: string;
+  items: readonly AgendaItem[];
   horseNames: Record<string, string>;
   isToday: boolean;
+  /** Day view: one roomy column instead of one of seven. */
+  wide: boolean;
   canEdit: boolean;
   onOpen: (occurrence: EventOccurrence) => void;
   onAdd: (dayKey: string) => void;
   drag: DragApi;
 }) {
   const { t } = useTranslation();
-  const weekday = new Date(`${dayKey}T00:00:00Z`).toLocaleDateString(undefined, {
-    weekday: 'short',
-    timeZone: 'UTC',
-  });
   const dayNumber = Number(dayKey.slice(8, 10));
-
   const isDropTarget = drag.overDayKey === dayKey && drag.sourceDayKey !== dayKey;
 
   return (
@@ -124,9 +225,7 @@ function DayColumn({
           isToday && 'border-b-primary',
         )}
       >
-        <span className="text-[13px] font-medium uppercase tracking-wide text-text-tertiary">
-          {weekday}
-        </span>
+        <span className="text-[13px] font-medium text-text-tertiary">{weekdayLabel(dayKey, wide)}</span>
         <span
           className={cn(
             'font-display text-[18px] font-semibold',
@@ -142,81 +241,28 @@ function DayColumn({
             type="button"
             onClick={() => onAdd(dayKey)}
             aria-label={`${t('agenda.addOnDay')} ${dayKey}`}
-            className="ml-auto flex h-6 w-6 items-center justify-center rounded-md text-text-tertiary opacity-0 transition-opacity duration-150 hover:bg-surface-muted hover:text-text-primary focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary group-hover/day:opacity-100"
+            className="ml-auto flex h-11 w-11 items-center justify-center rounded-md text-text-tertiary opacity-0 transition-opacity duration-150 hover:bg-surface-muted hover:text-text-primary focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary group-hover/day:opacity-100"
           >
             <Plus size={14} />
           </button>
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-2">
-        {occurrences.length === 0 ? (
+      <div className={cn('flex flex-col gap-2', wide && 'max-w-2xl')}>
+        {items.length === 0 ? (
           <p className="py-2 text-[13px] text-text-tertiary">{t('agenda.dayEmpty')}</p>
         ) : (
-          occurrences.map((occurrence) => {
-            const cancelled = occurrence.status === 'cancelled';
-            const done = occurrence.status === 'done';
-            const zoneLabel = zoneShortLabel(occurrence.timezone, readerTimeZone);
-            const horse =
-              occurrence.horse_id === null
-                ? t('agenda.wholeStable')
-                : (horseNames[occurrence.horse_id] ?? t('agenda.wholeStable'));
-
-            return (
-              <button
-                key={occurrence.key}
-                type="button"
-                onClick={() => onOpen(occurrence)}
-                // Dragging is a shortcut, never the only way: the same move is
-                // available from the detail dialog's date field, which is what
-                // keyboard and screen-reader users have. A drag-only
-                // reschedule would make the feature unusable for them.
-                draggable={canEdit}
-                onDragStart={(e) => {
-                  e.dataTransfer.effectAllowed = 'move';
-                  // Firefox ignores a drag that carries no payload.
-                  e.dataTransfer.setData('text/plain', occurrence.key);
-                  drag.onDragStart(occurrence, dayKey);
-                }}
-                onDragEnd={drag.onDragEnd}
-                style={{ borderLeftColor: TYPE_ACCENT[occurrence.type] }}
-                className={cn(
-                  'w-full rounded-lg border border-l-4 border-line p-2.5 text-left',
-                  'transition-colors duration-150 hover:border-line-strong hover:bg-surface-muted',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-                  canEdit && 'cursor-grab active:cursor-grabbing',
-                  done ? 'bg-surface-muted' : 'bg-surface',
-                  cancelled && 'opacity-60',
-                  drag.draggingKey === occurrence.key && 'opacity-40',
-                )}
-              >
-                <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-[12px] tabular-nums text-text-primary">
-                    {occurrence.all_day
-                      ? t('agenda.allDay')
-                      : formatZonedTime(occurrence.starts_at, readerTimeZone)}
-                  </span>
-                  {zoneLabel ? (
-                    <span className="text-[11px] text-text-tertiary">{zoneLabel}</span>
-                  ) : null}
-                </div>
-                <p
-                  className={cn(
-                    'mt-0.5 text-[14px] text-text-primary',
-                    cancelled && 'line-through',
-                  )}
-                >
-                  {occurrence.title}
-                </p>
-                <p className="text-[12px] text-text-secondary">{horse}</p>
-                {cancelled ? (
-                  <p className="mt-1 text-[11px] text-danger">{t('agenda.cancelled')}</p>
-                ) : done ? (
-                  <p className="mt-1 text-[11px] text-text-secondary">{t('agenda.done')}</p>
-                ) : null}
-              </button>
-            );
-          })
+          items.map((item) => (
+            <ItemCard
+              key={item.occurrence.key}
+              item={item}
+              dayKey={dayKey}
+              horseNames={horseNames}
+              canEdit={canEdit}
+              onOpen={onOpen}
+              drag={drag}
+            />
+          ))
         )}
       </div>
     </div>
@@ -256,10 +302,10 @@ interface FormState {
   isSeries: boolean;
 }
 
-export function AgendaWeekGrid({
-  week,
+export function AgendaBoard({
+  agenda,
   horseNames,
-  empty,
+  readerTimeZoneIsFallback,
   canEdit,
   orgId,
   userId,
@@ -267,9 +313,10 @@ export function AgendaWeekGrid({
   locations,
   assignees,
 }: {
-  week: AgendaWeek;
+  agenda: Agenda;
   horseNames: Record<string, string>;
-  empty: boolean;
+  /** The browser has not reported a zone yet, so times are in UTC — say so. */
+  readerTimeZoneIsFallback: boolean;
   canEdit: boolean;
   orgId: string;
   userId: string;
@@ -279,8 +326,8 @@ export function AgendaWeekGrid({
 }) {
   const { t } = useTranslation();
   const router = useRouter();
-  const todayKey = new Date().toISOString().slice(0, 10);
-  const showsToday = week.days.some((day) => day.dayKey === todayKey);
+  const span = agenda.window;
+  const empty = agenda.isEmpty;
 
   const [selected, setSelected] = useState<EventOccurrence | null>(null);
   const [form, setForm] = useState<FormState | null>(null);
@@ -339,7 +386,7 @@ export function AgendaWeekGrid({
         const result = await rescheduleOccurrenceToDay(getBrowserSupabase(), {
           occurrence: payload.occurrence,
           targetDayKey,
-          readerTimeZone: week.readerTimeZone,
+          readerTimeZone: span.readerTimeZone,
         });
         if (result === null) return;
         setMoved({
@@ -366,7 +413,7 @@ export function AgendaWeekGrid({
     },
     // `refresh` and `t` are stable for the lifetime of this component.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [endDrag, week.readerTimeZone],
+    [endDrag, span.readerTimeZone],
   );
 
   const undoMove = useCallback(async (): Promise<void> => {
@@ -415,7 +462,7 @@ export function AgendaWeekGrid({
 
   const openCreate = (dayKey: string): void =>
     setForm({
-      values: emptyFormValues({ dayKey, timeZone: week.readerTimeZone }),
+      values: emptyFormValues({ dayKey, timeZone: span.readerTimeZone }),
       eventId: null,
       occurrenceStart: null,
       isSeries: false,
@@ -451,52 +498,26 @@ export function AgendaWeekGrid({
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <Link
-          href={`/agenda?week=${shiftWeek(week.startDayKey, -1)}`}
-          aria-label={t('agenda.previousWeek')}
-          className="flex h-10 w-10 items-center justify-center rounded-md hover:bg-surface-muted"
-        >
-          <ChevronLeft size={18} />
-        </Link>
-        <div className="flex items-center gap-3">
-          <p className="text-[14px] font-medium text-text-primary">
-            {week.startDayKey} &ndash; {week.endDayKey}
+      {canEdit || readerTimeZoneIsFallback ? (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[12px] text-text-tertiary">
+            {readerTimeZoneIsFallback ? t('agenda.utcNotice') : null}
           </p>
-          {/* Paging away from this week used to be one-way: the arrows move a
-              week at a time and nothing brought you back, so finding today
-              again meant counting clicks. */}
-          {!showsToday ? (
-            <Link
-              href="/agenda"
-              className="rounded-md border border-line-strong px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface-muted hover:text-text-primary"
-            >
-              {t('agenda.thisWeek')}
-            </Link>
-          ) : null}
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/agenda?week=${shiftWeek(week.startDayKey, 1)}`}
-            aria-label={t('agenda.nextWeek')}
-            className="flex h-10 w-10 items-center justify-center rounded-md hover:bg-surface-muted"
-          >
-            <ChevronRight size={18} />
-          </Link>
           {/* The single coral action on this screen. */}
           {canEdit ? (
             <Button
               type="button"
               variant="accent"
               size="sm"
-              onClick={() => openCreate(week.startDayKey)}
+              className="min-h-11"
+              onClick={() => openCreate(span.startDayKey)}
             >
               <Plus size={16} />
               {t('agenda.addButton')}
             </Button>
           ) : null}
         </div>
-      </div>
+      ) : null}
 
       {/* Drag is invisible until you try it, so it gets one quiet line. Only
           for people who can actually edit — telling a read-only viewer about
@@ -508,21 +529,26 @@ export function AgendaWeekGrid({
       {empty ? (
         <EmptyState
           icon={<CalendarDays size={28} />}
-          title={t('agenda.weekEmptyTitle')}
+          title={span.view === 'day' ? t('agenda.dayEmptyTitle') : t('agenda.weekEmptyTitle')}
           description={
             canEdit ? t('agenda.weekEmptyDescription') : t('agenda.weekEmptyReadOnly')
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-7">
-          {week.days.map((day, dayIndex) => (
+        <div
+          className={cn(
+            'grid grid-cols-1 gap-4',
+            span.view === 'week' && 'sm:grid-cols-2 lg:grid-cols-7',
+          )}
+        >
+          {agenda.days.map((day, dayIndex) => (
             <FadeIn key={day.dayKey} index={dayIndex}>
               <DayColumn
                 dayKey={day.dayKey}
-                occurrences={day.occurrences}
-                readerTimeZone={week.readerTimeZone}
+                items={day.items}
                 horseNames={horseNames}
-                isToday={day.dayKey === todayKey}
+                isToday={day.isToday}
+                wide={span.view === 'day'}
                 canEdit={canEdit}
                 onOpen={setSelected}
                 onAdd={openCreate}
@@ -568,7 +594,7 @@ export function AgendaWeekGrid({
           open
           onClose={() => setSelected(null)}
           occurrence={selected}
-          readerTimeZone={week.readerTimeZone}
+          readerTimeZone={span.readerTimeZone}
           horseName={
             selected.horse_id === null ? null : (horseNames[selected.horse_id] ?? null)
           }

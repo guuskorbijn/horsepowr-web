@@ -276,3 +276,20 @@ export function buildAgenda(params: BuildAgendaParams): Agenda {
     unparseableRuleEventIds: result.unparseableRuleEventIds,
   };
 }
+
+/** "Z3" or "Z2–Z4": the span a target covers, always printed next to its bpm. */
+export function formatZoneSpan(zones: readonly ZoneKey[]): string {
+  const firstZone = zones[0];
+  const lastZone = zones[zones.length - 1];
+  if (firstZone === undefined || lastZone === undefined) return '';
+  const label = (zone: ZoneKey): string => zone.toUpperCase();
+  return firstZone === lastZone ? label(firstZone) : `${label(firstZone)}–${label(lastZone)}`;
+}
+
+/** "150–170 bpm", "≥ 150 bpm", "≤ 170 bpm", or null without a range. */
+export function formatHrRange(minBpm: number | null, maxBpm: number | null): string | null {
+  if (minBpm !== null && maxBpm !== null) return `${minBpm}–${maxBpm} bpm`;
+  if (minBpm !== null) return `≥ ${minBpm} bpm`;
+  if (maxBpm !== null) return `≤ ${maxBpm} bpm`;
+  return null;
+}

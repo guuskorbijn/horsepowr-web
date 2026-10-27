@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ShieldAlert } from 'lucide-react';
 import { AppShell } from '@/components/shell/AppShell';
+import { TimeZoneSync } from '@/components/shell/TimeZoneSync';
 import { EmptyState } from '@/components/ui/states';
 import { requireSessionContext } from '@/lib/session';
 import { LocaleProvider } from '@/i18n/LocaleProvider';
@@ -16,6 +17,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
 
   return (
     <LocaleProvider initialLocale={locale}>
+      <TimeZoneSync />
       <AppShell user={user} org={ctx.org} locations={ctx.locations}>
         {ctx.org ? (
           children

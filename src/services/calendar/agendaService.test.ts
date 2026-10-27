@@ -247,3 +247,16 @@ describe('buildAgenda', () => {
     expect(itemsByDay(agenda)).toEqual({ '2026-10-27': ['Interval work'] });
   });
 });
+
+describe('target formatting', () => {
+  it('prints a zone span and an HR range, one-sided ranges included', async () => {
+    const { formatZoneSpan, formatHrRange } = await import('@/services/calendar/agendaService');
+    expect(formatZoneSpan(['z3'])).toBe('Z3');
+    expect(formatZoneSpan(['z2', 'z3', 'z4'])).toBe('Z2–Z4');
+    expect(formatZoneSpan([])).toBe('');
+    expect(formatHrRange(150, 170)).toBe('150–170 bpm');
+    expect(formatHrRange(150, null)).toBe('≥ 150 bpm');
+    expect(formatHrRange(null, 170)).toBe('≤ 170 bpm');
+    expect(formatHrRange(null, null)).toBeNull();
+  });
+});

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, FileText } from 'lucide-react';
+import { ArrowLeft, CalendarDays, FileText } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { StatusPill } from '@/components/ui/StatusPill';
@@ -62,6 +62,13 @@ export default async function HorseDetailPage({
             {horse.active ? null : (
               <StatusPill tone="muted">{t('horses.inactive')}</StatusPill>
             )}
+            <Link
+              href={`/horses/${horse.id}/agenda`}
+              className="inline-flex h-11 items-center gap-1.5 rounded-md border border-line-strong px-3 text-[13px] font-medium text-text-primary hover:bg-surface-muted"
+            >
+              <CalendarDays size={15} />
+              {t('agenda.title')}
+            </Link>
             {/* The record that leaves with the horse: sale, insurer, vet. */}
             <Link
               href={`/horses/${horse.id}/dossier`}
