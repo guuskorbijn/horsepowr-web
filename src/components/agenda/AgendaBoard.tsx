@@ -306,6 +306,7 @@ export function AgendaBoard({
   agenda,
   horseNames,
   readerTimeZoneIsFallback,
+  defaults = {},
   canEdit,
   orgId,
   userId,
@@ -317,6 +318,12 @@ export function AgendaBoard({
   horseNames: Record<string, string>;
   /** The browser has not reported a zone yet, so times are in UTC — say so. */
   readerTimeZoneIsFallback: boolean;
+  /**
+   * What a new item starts with: the horse and person the view is filtered
+   * on. Planning from a horse's own agenda should not mean picking that horse
+   * again.
+   */
+  defaults?: { horseId?: string | null; assigneeId?: string | null };
   canEdit: boolean;
   orgId: string;
   userId: string;
@@ -462,7 +469,10 @@ export function AgendaBoard({
 
   const openCreate = (dayKey: string): void =>
     setForm({
-      values: emptyFormValues({ dayKey, timeZone: span.readerTimeZone }),
+      values: {
+        ...emptyFormValues({ dayKey, timeZone: span.readerTimeZone, horseId: defaults.horseId ?? null }),
+        assigneeId: defaults.assigneeId ?? null,
+      },
       eventId: null,
       occurrenceStart: null,
       isSeries: false,

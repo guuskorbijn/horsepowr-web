@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { AgendaBoard } from '@/components/agenda/AgendaBoard';
 import { agendaWindow, buildAgenda } from '@/services/calendar/agendaService';
 import type { CalendarEvent } from '@/types/calendar';
@@ -40,7 +40,12 @@ function event(patch: Partial<CalendarEvent>): CalendarEvent {
   };
 }
 
-function renderBoard(events: CalendarEvent[], canEdit: boolean, view: 'day' | 'week' = 'week') {
+function renderBoard(
+  events: CalendarEvent[],
+  canEdit: boolean,
+  view: 'day' | 'week' = 'week',
+  defaults: { horseId?: string | null } = {},
+) {
   const agenda = buildAgenda({
     window: agendaWindow({ view, anchorDayKey: '2026-10-27', readerTimeZone: 'Europe/Amsterdam', nowIso: NOW }),
     events,
@@ -53,10 +58,11 @@ function renderBoard(events: CalendarEvent[], canEdit: boolean, view: 'day' | 'w
       agenda={agenda}
       horseNames={{ 'horse-1': 'Luna' }}
       readerTimeZoneIsFallback={false}
+      defaults={defaults}
       canEdit={canEdit}
       orgId="org-1"
       userId="user-1"
-      horses={[]}
+      horses={[{ id: 'horse-1', org_id: 'org-1', location_id: null, name: 'Luna', discipline: null, photo_url: null, active: true, max_hr: 220, date_of_birth: null, sex: null, breed: null, level: null, height_cm: null, weight_kg: null, chip_number: null, created_at: NOW }]}
       locations={[]}
       assignees={[]}
     />,
@@ -91,5 +97,12 @@ describe('AgendaBoard', () => {
     renderBoard([], false, 'day');
     expect(screen.getByText('Nothing planned this day')).toBeDefined();
     expect(screen.getByText(/Plan items in the mobile app/)).toBeDefined();
+  });
+
+  it('a new item on a horse’s agenda starts with that horse selected', () => {
+    renderBoard([], true, 'week', { horseId: 'horse-1' });
+    fireEvent.click(screen.getByText('New item'));
+    const horse = screen.getByLabelText('Horse') as HTMLSelectElement;
+    expect(horse.value).toBe('horse-1');
   });
 });

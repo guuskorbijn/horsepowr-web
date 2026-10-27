@@ -104,6 +104,7 @@ export async function AgendaScreen({
         agenda={result.agenda}
         horseNames={horseNames}
         readerTimeZoneIsFallback={result.readerTimeZoneIsFallback}
+        defaults={{ horseId: query.horseId, assigneeId: query.assigneeId }}
         canEdit={result.canEdit}
         orgId={result.orgId}
         userId={result.userId}
