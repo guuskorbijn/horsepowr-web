@@ -103,6 +103,14 @@ export type SessionRow = {
    * Optional here because older rows predate it and PostgREST returns null.
    */
   planned_event_id?: string | null;
+  /**
+   * Phase 2 PROPOSAL columns (20261016000000_sessions_planned_link.sql, not
+   * applied to remote). PostgREST omits a column it does not have, so these
+   * are optional and read as absent until that migration lands. Never write
+   * them from web.
+   */
+  planned_occurrence_start?: string | null;
+  planned_targets_snapshot?: unknown;
   physical_rating: number | null;
   mental_rating: number | null;
   injury_concern: boolean;

@@ -33,6 +33,7 @@ export function TimeSeriesChart({
   onHover,
   height = 180,
   zoneBands,
+  targetBand,
   valueFormat = (v) => `${Math.round(v)}`,
   ariaLabel,
 }: {
@@ -44,6 +45,12 @@ export function TimeSeriesChart({
   onHover: (t: number | null) => void;
   height?: number;
   zoneBands?: ZoneValueBand[];
+  /**
+   * A planned HR range, drawn as neutral dashed limits. Deliberately not
+   * coloured: a band in green would read as "good inside", which is a
+   * judgment this product does not make. A null side is unbounded.
+   */
+  targetBand?: { minBpm: number | null; maxBpm: number | null; label: string };
   valueFormat?: (v: number) => string;
   ariaLabel?: string;
 }) {
@@ -184,6 +191,35 @@ export function TimeSeriesChart({
                 />
               );
             })}
+
+            {/* Planned target range */}
+            {targetBand
+              ? [targetBand.minBpm, targetBand.maxBpm].map((bpm, index) => {
+                  if (bpm === null || bpm < yDomain[0] || bpm > yDomain[1]) return null;
+                  const y = yScale(bpm);
+                  return (
+                    <g key={index === 0 ? 'target-min' : 'target-max'}>
+                      <line
+                        x1={0}
+                        x2={innerW}
+                        y1={y}
+                        y2={y}
+                        stroke="var(--color-text-secondary)"
+                        strokeWidth={1.25}
+                        strokeDasharray="5 4"
+                      />
+                      <text
+                        x={innerW - 4}
+                        y={index === 0 ? y + 11 : y - 4}
+                        textAnchor="end"
+                        className="fill-[var(--color-text-secondary)] text-[10px] tabular"
+                      >
+                        {`${targetBand.label} ${bpm}`}
+                      </text>
+                    </g>
+                  );
+                })
+              : null}
 
             {/* Y gridlines + labels */}
             {yTicks.map((t) => (

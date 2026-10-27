@@ -15,6 +15,9 @@ import { PrintReportHeader } from '@/components/session/PrintReportHeader';
 import { RouteMap } from '@/components/session/RouteMap';
 import { SessionSummaryCard } from '@/components/session/SessionSummaryCard';
 import { RecordingQualityCard } from '@/components/session/RecordingQualityCard';
+import { PlannedVsActualCard } from '@/components/session/PlannedVsActualCard';
+import { getServerT } from '@/i18n/server';
+import { log } from '@/lib/log';
 import { ZoneDistribution } from '@/components/session/ZoneDistribution';
 import { AnnotationForm } from '@/components/session/AnnotationForm';
 import { ExportBar } from '@/components/session/ExportBar';
@@ -54,7 +57,8 @@ async function load(id: string): Promise<LoadResult> {
       olderId: idx >= 0 && idx < siblings.length - 1 ? (siblings[idx + 1]?.id ?? null) : null,
     };
     return { status: 'ok', view, neighbors };
-  } catch {
+  } catch (err: unknown) {
+    log.error('session: could not load', { sessionId: id, error: err instanceof Error ? err.message : String(err) });
     return { status: 'error' };
   }
 }
@@ -65,7 +69,7 @@ export default async function SessionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const result = await load(id);
+  const [result, t] = await Promise.all([load(id), getServerT()]);
 
   if (result.status === 'not-found') notFound();
   if (result.status === 'error') {
@@ -125,6 +129,8 @@ export default async function SessionDetailPage({
 
         <SessionSummaryCard summary={view.summary} />
 
+        <PlannedVsActualCard planned={view.planned} maxHr={view.maxHr} />
+
         <SessionCharts
           hr={view.hr}
           speed={view.speed}
@@ -133,6 +139,11 @@ export default async function SessionDetailPage({
           efforts={view.efforts}
           gradientProfile={view.gradientProfile}
           maxHr={view.maxHr}
+          targetBand={
+            view.planned.kind === 'compared' && view.planned.targetBand !== null
+              ? { ...view.planned.targetBand, label: t('plannedVsActual.targetBand') }
+              : undefined
+          }
         />
 
         <EffortsPanel efforts={view.efforts} hasGps={view.route.length > 1} />
