@@ -14,6 +14,7 @@ import type { HorseRow, SessionRow, TrainingType } from '@/types/db';
 import { listHorses, getHorse } from '@/data/horseRepository';
 import { listSessionsForHorse, listSessionsForHorses } from '@/data/sessionRepository';
 import { deriveAgeYears } from '@/services/age';
+import { resolveBoundMs } from '@/services/time/dateBounds';
 import type {
   AnalystHorseSummary,
   AnalystSessionSummary,
@@ -84,36 +85,23 @@ export async function listHorsesForAnalyst(
   return horses.filter((h) => h.org_id === orgId).map(toHorseSummary);
 }
 
-const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
-
 /**
  * Inclusive date-range test on a session's ISO `started_at`. Bounds may be
- * date-only ("2026-06-21") or full datetimes.
- *
- * A date-only `to` means "through the END of that UTC day", so a session at
- * 05:10Z on the 21st matches a `to: "2026-06-21"`. Without this a single-day
- * range [D, D] would exclude everything after 00:00Z (the bare date parses to
- * midnight) — which silently hid real same-day sessions from the analyst.
- * A `to` with a time component is treated as the exact instant. Timestamps are
- * stored in UTC, so bounds are compared in UTC.
+ * date-only ("2026-06-21") or full datetimes; a date-only `to` covers the
+ * whole UTC day (see `services/time/dateBounds.ts`, the one place that rule
+ * lives). An unparseable bound is ignored here, as it always was — the
+ * dispatcher is what rejects bad input before it reaches this point.
  */
 export function inDateRange(startedAt: string, from?: string, to?: string): boolean {
   const t = new Date(startedAt).getTime();
   if (!Number.isFinite(t)) return false;
   if (from) {
-    const f = new Date(from).getTime();
-    if (Number.isFinite(f) && t < f) return false;
+    const f = resolveBoundMs(from, 'start');
+    if (f !== null && t < f) return false;
   }
   if (to) {
-    const base = new Date(to).getTime();
-    if (Number.isFinite(base)) {
-      if (DATE_ONLY.test(to.trim())) {
-        // End of that UTC day, exclusive of the next day's midnight.
-        if (t >= base + 86_400_000) return false;
-      } else if (t > base) {
-        return false;
-      }
-    }
+    const end = resolveBoundMs(to, 'end');
+    if (end !== null && t >= end) return false;
   }
   return true;
 }

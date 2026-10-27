@@ -9,6 +9,13 @@ import type {
   CalendarEventType,
 } from '@/types/calendar';
 import type { CalendarEventRow, CalendarEventOverrideRow } from '@/types/db';
+import type { PostgrestError } from '@supabase/supabase-js';
+import {
+  parseCalendarEventOverrideRow,
+  parseCalendarEventRow,
+} from '@/types/calendarSchemas';
+import { resolveRange } from '@/services/time/dateBounds';
+import { log } from '@/lib/log';
 
 /**
  * Every Supabase call the agenda makes on web.
@@ -73,61 +80,210 @@ function toOverride(row: CalendarEventOverrideRow): CalendarEventOverride {
 }
 
 /**
- * Events that could produce an occurrence in a range: anything overlapping it,
- * plus EVERY recurring master.
- *
- * The second half is not an optimisation miss — a master's own `starts_at` says
- * nothing about where its occurrences fall, so filtering masters by date would
- * silently empty a weekly series the moment you paged past its first week.
+ * Validates rows at the boundary. A row that does not match the DDL is logged
+ * and dropped: one corrupt appointment must not blank a stable's whole week,
+ * and the log line is what keeps that from being a silent loss.
  */
-export async function listEventsForRange(
-  supa: Supa,
-  rangeStartUtc: string,
-  rangeEndUtc: string,
-): Promise<CalendarEvent[]> {
-  const overlapping = unwrap<CalendarEventRow[]>(
-    await supa
-      .from('calendar_events')
-      .select('*')
-      .is('deleted_at', null)
-      .lt('starts_at', rangeEndUtc)
-      .or(
-        `ends_at.gte.${rangeStartUtc},and(ends_at.is.null,starts_at.gte.${rangeStartUtc})`,
-      )
-      .order('starts_at', { ascending: true }),
-    'listEventsForRange',
-  );
-
-  const recurring = unwrap<CalendarEventRow[]>(
-    await supa
-      .from('calendar_events')
-      .select('*')
-      .is('deleted_at', null)
-      .not('recurrence_rule', 'is', null)
-      .order('starts_at', { ascending: true }),
-    'listRecurringEvents',
-  );
-
-  const byId = new Map<string, CalendarEventRow>();
-  for (const row of [...overlapping, ...recurring]) byId.set(row.id, row);
-  return [...byId.values()].map(toEvent);
+function validEvents(rows: readonly unknown[], context: string): CalendarEvent[] {
+  const events: CalendarEvent[] = [];
+  for (const raw of rows) {
+    const parsed = parseCalendarEventRow(raw);
+    if (parsed.ok) events.push(toEvent(parsed.row));
+    else log.error(`${context}: dropping calendar_events row that fails validation`, { error: parsed.error });
+  }
+  return events;
 }
 
-/** Per-occurrence deviations for a set of events. */
-export async function listOverridesForEvents(
+function validOverrides(rows: readonly unknown[], context: string): CalendarEventOverride[] {
+  const overrides: CalendarEventOverride[] = [];
+  for (const raw of rows) {
+    const parsed = parseCalendarEventOverrideRow(raw);
+    if (parsed.ok) overrides.push(toOverride(parsed.row));
+    else log.error(`${context}: dropping calendar_event_overrides row that fails validation`, { error: parsed.error });
+  }
+  return overrides;
+}
+
+/**
+ * Page size for every calendar read.
+ *
+ * Kept BELOW PostgREST's default `max-rows` (1000). Pagination stops only on
+ * an EMPTY page, never on a short one, so a server configured with a lower
+ * cap than this still returns everything instead of quietly stopping at the
+ * cap — the bug a "fewer rows than asked for means done" loop has.
+ */
+export const CALENDAR_PAGE_SIZE = 500;
+
+/** Upper bound on pages per read; reaching it is an error, never a cut. */
+const MAX_PAGES = 200;
+
+/** How many ids go into one `in (...)` filter, to keep the URL bounded. */
+const ID_CHUNK = 100;
+
+/**
+ * Reads every page of a query ordered by a stable key. The ordering MUST end
+ * in a unique column (`id`) so no row can sit on a page boundary in two
+ * different positions; the map below drops any row seen twice anyway.
+ */
+async function readAllPages(
+  page: (from: number, to: number) => PromiseLike<{ data: unknown[] | null; error: PostgrestError | null }>,
+  context: string,
+): Promise<unknown[]> {
+  const rows: unknown[] = [];
+  for (let index = 0; index < MAX_PAGES; index++) {
+    const offset = rows.length;
+    const batch = unwrap<unknown[]>(await page(offset, offset + CALENDAR_PAGE_SIZE - 1), context);
+    if (batch.length === 0) return rows;
+    rows.push(...batch);
+  }
+  throw new RepositoryError(
+    `${context}: more than ${MAX_PAGES * CALENDAR_PAGE_SIZE} rows; refusing to return a partial agenda`,
+  );
+}
+
+function dedupeById<T extends { id: string }>(items: readonly T[]): T[] {
+  const byId = new Map<string, T>();
+  for (const item of items) byId.set(item.id, item);
+  return [...byId.values()];
+}
+
+interface EventScope {
+  /** The caller's org. Defense-in-depth on top of RLS, never instead of it. */
+  orgId: string;
+  /** One horse. Stable-wide items are included unless `includeStableWide` is false. */
+  horseId?: string;
+  /** Items assigned to one person. */
+  assigneeId?: string;
+  types?: readonly CalendarEventType[];
+  /** Default true: a farrier visit for the whole yard concerns every horse. */
+  includeStableWide?: boolean;
+}
+
+export interface ListEventsFilter extends EventScope {
+  /** Inclusive start: an ISO instant or a date-only `YYYY-MM-DD`. */
+  from: string;
+  /** End: an ISO instant (inclusive) or a date-only day (the whole UTC day). */
+  to: string;
+}
+
+export interface EventWindowFilter extends EventScope {
+  /** Inclusive UTC ISO start. */
+  startUtc: string;
+  /** Exclusive UTC ISO end. */
+  endUtc: string;
+}
+
+/**
+ * Events for a range given as text (the analyst's `from`/`to`). Date-only
+ * bounds cover whole UTC days; a bad bound throws a RangeError naming it.
+ */
+export async function listEvents(
+  supa: Supa,
+  filter: ListEventsFilter,
+): Promise<CalendarEvent[]> {
+  const { from, to, ...scope } = filter;
+  const { startUtc, endUtc } = resolveRange(from, to);
+  return listEventsInWindow(supa, { ...scope, startUtc, endUtc });
+}
+
+/**
+ * Events that can produce an occurrence inside a half-open window.
+ *
+ * Two queries, because the two kinds of row are bounded differently:
+ *  - one-offs overlapping the window: `starts_at < end` and the item has not
+ *    ended before `start` (an open-ended item counts from its start);
+ *  - recurring masters that have STARTED before the window ends. Where the
+ *    series ends is unknown here (UNTIL/COUNT live in the rule text), so a
+ *    master that started in 2025 is still fetched — the pure expansion
+ *    decides whether it reaches the window.
+ *
+ * Tombstones (`deleted_at`) never leave this function. Cancelled status does:
+ * the display layer decides whether to strike an item through or hide it.
+ */
+export async function listEventsInWindow(
+  supa: Supa,
+  filter: EventWindowFilter,
+): Promise<CalendarEvent[]> {
+  const { startUtc, endUtc } = filter;
+  const includeStableWide = filter.includeStableWide ?? true;
+
+  const scoped = () => {
+    let query = supa
+      .from('calendar_events')
+      .select('*')
+      .eq('org_id', filter.orgId)
+      .is('deleted_at', null)
+      .lt('starts_at', endUtc);
+    if (filter.assigneeId !== undefined) query = query.eq('assignee_id', filter.assigneeId);
+    if (filter.types !== undefined && filter.types.length > 0) query = query.in('type', [...filter.types]);
+    // The inclusive horse filter ("this horse, or the whole yard") is applied
+    // in memory below: it is an OR, and the one-off query already needs the
+    // one `or` filter PostgREST can be relied on to AND with the rest.
+    if (filter.horseId !== undefined && !includeStableWide) query = query.eq('horse_id', filter.horseId);
+    return query;
+  };
+
+  const [oneOffRows, recurringRows] = await Promise.all([
+    readAllPages(
+      (from, to) =>
+        scoped()
+          .is('recurrence_rule', null)
+          .or(`ends_at.gte.${startUtc},and(ends_at.is.null,starts_at.gte.${startUtc})`)
+          .order('starts_at', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, to),
+      'listEventsInWindow(one-off)',
+    ),
+    readAllPages(
+      (from, to) =>
+        scoped()
+          .not('recurrence_rule', 'is', null)
+          .order('starts_at', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, to),
+      'listEventsInWindow(recurring)',
+    ),
+  ]);
+
+  const events = validEvents([...oneOffRows, ...recurringRows], 'listEventsInWindow');
+  // Defense-in-depth: RLS already scopes to the caller's org; this guarantees
+  // a policy regression can never put another stable's appointment on screen.
+  return dedupeById(events).filter(
+    (event) =>
+      event.org_id === filter.orgId &&
+      (filter.horseId === undefined || event.horse_id === filter.horseId || event.horse_id === null),
+  );
+}
+
+/**
+ * Per-occurrence deviations for a set of events, tombstones excluded.
+ * Chunked and paginated, so a busy stable cannot hit the row cap.
+ */
+export async function listOverrides(
   supa: Supa,
   eventIds: readonly string[],
 ): Promise<CalendarEventOverride[]> {
-  if (eventIds.length === 0) return [];
-  const rows = unwrap<CalendarEventOverrideRow[]>(
-    await supa
-      .from('calendar_event_overrides')
-      .select('*')
-      .in('event_id', [...eventIds])
-      .is('deleted_at', null),
-    'listOverridesForEvents',
+  const unique = [...new Set(eventIds)];
+  const chunks: string[][] = [];
+  for (let i = 0; i < unique.length; i += ID_CHUNK) chunks.push(unique.slice(i, i + ID_CHUNK));
+
+  const pages = await Promise.all(
+    chunks.map((ids) =>
+      readAllPages(
+        (from, to) =>
+          supa
+            .from('calendar_event_overrides')
+            .select('*')
+            .in('event_id', ids)
+            .is('deleted_at', null)
+            .order('original_start', { ascending: true })
+            .order('id', { ascending: true })
+            .range(from, to),
+        'listOverrides',
+      ),
+    ),
   );
-  return rows.map(toOverride);
+  return dedupeById(validOverrides(pages.flat(), 'listOverrides'));
 }
 
 /** One event by id, or null when it is gone or not readable under RLS. */
@@ -135,7 +291,7 @@ export async function getEvent(
   supa: Supa,
   id: string,
 ): Promise<CalendarEvent | null> {
-  const row = unwrapMaybe<CalendarEventRow>(
+  const row = unwrapMaybe<unknown>(
     await supa
       .from('calendar_events')
       .select('*')
@@ -144,7 +300,7 @@ export async function getEvent(
       .maybeSingle(),
     'getEvent',
   );
-  return row === null ? null : toEvent(row);
+  return row === null ? null : (validEvents([row], 'getEvent')[0] ?? null);
 }
 
 /** One occurrence's override, or null when that occurrence has never deviated. */
@@ -153,7 +309,7 @@ export async function getOverride(
   eventId: string,
   originalStart: string,
 ): Promise<CalendarEventOverride | null> {
-  const row = unwrapMaybe<CalendarEventOverrideRow>(
+  const row = unwrapMaybe<unknown>(
     await supa
       .from('calendar_event_overrides')
       .select('*')
@@ -163,7 +319,7 @@ export async function getOverride(
       .maybeSingle(),
     'getOverride',
   );
-  return row === null ? null : toOverride(row);
+  return row === null ? null : (validOverrides([row], 'getOverride')[0] ?? null);
 }
 
 /** The writable shape of an event, shared by create and update. */

@@ -4,6 +4,8 @@
  * classifies measured HR into labelled bands, it does not judge effort.
  */
 import { hrZones, type ZoneKey } from '@/theme/tokens';
+
+export type { ZoneKey };
 import type { MeasurementRow } from '@/types/db';
 
 export const DEFAULT_HORSE_MAX_HR = 240;

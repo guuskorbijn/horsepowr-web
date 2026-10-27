@@ -5,8 +5,8 @@ import { getServerSupabase } from '@/lib/supabase/server';
 import { requireSessionContext } from '@/lib/session';
 import { getServerT } from '@/i18n/server';
 import {
-  listEventsForRange,
-  listOverridesForEvents,
+  listEventsInWindow,
+  listOverrides,
 } from '@/data/calendarRepository';
 import { listHorses } from '@/data/horseRepository';
 import { listSessionsForHorses } from '@/data/sessionRepository';
@@ -36,14 +36,18 @@ async function load(anchorDayKey: string | null): Promise<LoadResult> {
     const horses = await listHorses(supa, ctx.org.id);
 
     const [events, sessions] = await Promise.all([
-      listEventsForRange(supa, window.startUtc, window.endUtc),
+      listEventsInWindow(supa, {
+        orgId: ctx.org.id,
+        startUtc: window.startUtc,
+        endUtc: window.endUtc,
+      }),
       listSessionsForHorses(
         supa,
         horses.map((horse) => horse.id),
         { since: window.startUtc, until: window.endUtc },
       ),
     ]);
-    const overrides = await listOverridesForEvents(
+    const overrides = await listOverrides(
       supa,
       events.map((event) => event.id),
     );
