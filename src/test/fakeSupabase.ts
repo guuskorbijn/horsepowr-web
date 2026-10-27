@@ -16,6 +16,8 @@ export interface Call {
 export interface FakeResult {
   data: unknown;
   error: { message: string; code?: string } | null;
+  /** For `select(..., { count: 'exact', head: true })`. */
+  count?: number | null;
 }
 
 export type Responder = (calls: Call[]) => FakeResult;

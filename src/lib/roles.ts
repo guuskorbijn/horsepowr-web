@@ -17,12 +17,14 @@ export interface Capabilities {
   canManage: boolean;
   /** Sees only horses they're assigned to (vet). */
   perHorseScoped: boolean;
+  /** Can import an activity file (TCX/GPX/FIT) as a new session. RLS: trainer-only writes. */
+  canImport: boolean;
 }
 
 const CAPABILITIES: Readonly<Record<UserRole, Capabilities>> = {
-  trainer: { canEdit: true, canManage: true, perHorseScoped: false },
-  owner: { canEdit: false, canManage: false, perHorseScoped: false },
-  vet: { canEdit: false, canManage: false, perHorseScoped: true },
+  trainer: { canEdit: true, canManage: true, perHorseScoped: false, canImport: true },
+  owner: { canEdit: false, canManage: false, perHorseScoped: false, canImport: false },
+  vet: { canEdit: false, canManage: false, perHorseScoped: true, canImport: false },
   // FUTURE: add `analyst: { ... }` here once the role exists in the DB. No other
   // file should need to change. Until then the analyst logs in as trainer/owner.
 };
