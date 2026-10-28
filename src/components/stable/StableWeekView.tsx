@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { useTranslation } from '@/i18n/LocaleProvider';
-import { shiftWeek } from '@/services/calendar/agendaWeekService';
+import { shiftAgenda } from '@/services/calendar/agendaService';
 import { cn } from '@/lib/cn';
 import type { StableWeek } from '@/services/stable/stableWeekService';
 
@@ -87,7 +87,7 @@ export function StableWeekView({
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <Link
-          href={`/stable?week=${shiftWeek(startDayKey, -1)}`}
+          href={`/stable?week=${shiftAgenda('week', startDayKey, -1)}`}
           aria-label={t('agenda.previousWeek')}
           className="flex h-10 w-10 items-center justify-center rounded-md hover:bg-surface-muted"
         >
@@ -107,7 +107,7 @@ export function StableWeekView({
           ) : null}
         </div>
         <Link
-          href={`/stable?week=${shiftWeek(startDayKey, 1)}`}
+          href={`/stable?week=${shiftAgenda('week', startDayKey, 1)}`}
           aria-label={t('agenda.nextWeek')}
           className="flex h-10 w-10 items-center justify-center rounded-md hover:bg-surface-muted"
         >

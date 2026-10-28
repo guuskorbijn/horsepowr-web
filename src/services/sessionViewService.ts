@@ -31,6 +31,7 @@ import {
 import { analyzeHrSpeed, type HrSpeedAnalysis } from '@/services/hrSpeedService';
 import { buildRecoveryDescent, type RecoveryDescent } from '@/services/recoveryService';
 import { sessionHrv, type HrvResult } from '@/services/hrv/hrvService';
+import { buildPlannedComparison, type PlannedComparison } from '@/services/calendar/plannedComparison';
 import type { HorseRow, SessionRow } from '@/types/db';
 import type { ChartSeries, Effort, GaitBand, RoutePoint, SessionMetrics } from '@/types/view';
 
@@ -55,6 +56,8 @@ export interface SessionView {
   quality: RecordingQuality;
   summary: SessionSummary;
   gaitFromCache: boolean;
+  /** Planned vs measured, from the snapshot frozen at session start. */
+  planned: PlannedComparison;
 }
 
 function nonEmpty(series: ChartSeries): ChartSeries | null {
@@ -123,5 +126,6 @@ export async function loadSessionView(
     quality,
     summary,
     gaitFromCache: cached !== null,
+    planned: buildPlannedComparison(session, rows, maxHr),
   };
 }

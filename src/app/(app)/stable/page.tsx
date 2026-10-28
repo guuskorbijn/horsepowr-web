@@ -5,12 +5,14 @@ import { getServerSupabase } from '@/lib/supabase/server';
 import { requireSessionContext } from '@/lib/session';
 import { getServerT } from '@/i18n/server';
 import {
-  listEventsForRange,
-  listOverridesForEvents,
+  listEventsInWindow,
+  listOverrides,
 } from '@/data/calendarRepository';
 import { listHorses } from '@/data/horseRepository';
 import { listSessionsForHorses } from '@/data/sessionRepository';
-import { buildAgendaWeek, weekWindow } from '@/services/calendar/agendaWeekService';
+import { agendaWindow, buildAgenda, todayDayKey } from '@/services/calendar/agendaService';
+import { getReaderTimeZone } from '@/lib/readerTimeZone.server';
+import { log } from '@/lib/log';
 import { buildStableWeek } from '@/services/stable/stableWeekService';
 import { StableWeekView } from '@/components/stable/StableWeekView';
 import type { StableWeek } from '@/services/stable/stableWeekService';
@@ -31,30 +33,45 @@ async function load(anchorDayKey: string | null): Promise<LoadResult> {
   const ctx = await requireSessionContext();
   if (!ctx.org) return { status: 'no-org' };
   try {
-    const supa = await getServerSupabase();
-    const window = weekWindow(anchorDayKey);
+    const [supa, reader] = await Promise.all([getServerSupabase(), getReaderTimeZone()]);
+    const nowIso = new Date().toISOString();
+    const window = agendaWindow({
+      view: 'week',
+      anchorDayKey,
+      readerTimeZone: reader.timeZone,
+      nowIso,
+    });
     const horses = await listHorses(supa, ctx.org.id);
 
     const [events, sessions] = await Promise.all([
-      listEventsForRange(supa, window.startUtc, window.endUtc),
+      listEventsInWindow(supa, {
+        orgId: ctx.org.id,
+        startUtc: window.startUtc,
+        endUtc: window.endUtc,
+      }),
       listSessionsForHorses(
         supa,
         horses.map((horse) => horse.id),
         { since: window.startUtc, until: window.endUtc },
       ),
     ]);
-    const overrides = await listOverridesForEvents(
+    const overrides = await listOverrides(
       supa,
       events.map((event) => event.id),
     );
 
-    const agenda = buildAgendaWeek({ window, events, overrides });
-    const occurrences = agenda.days.flatMap((day) => day.occurrences);
+    const agenda = buildAgenda({
+      window,
+      events,
+      overrides,
+      todayKey: todayDayKey(nowIso, reader.timeZone),
+    });
+    const occurrences = agenda.days.flatMap((day) => day.items.map((item) => item.occurrence));
 
     return {
       status: 'ok',
-      startDayKey: agenda.startDayKey,
-      endDayKey: agenda.endDayKey,
+      startDayKey: window.startDayKey,
+      endDayKey: window.endDayKey,
       week: buildStableWeek({
         horses: horses.map((horse) => ({ id: horse.id, name: horse.name })),
         sessions,
@@ -62,7 +79,8 @@ async function load(anchorDayKey: string | null): Promise<LoadResult> {
         nowMs: Date.now(),
       }),
     };
-  } catch {
+  } catch (err: unknown) {
+    log.error('stable week: could not load', { error: err instanceof Error ? err.message : String(err) });
     return { status: 'error' };
   }
 }

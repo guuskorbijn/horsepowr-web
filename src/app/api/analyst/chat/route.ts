@@ -92,7 +92,8 @@ export async function POST(request: Request): Promise<Response> {
 
   // 3. RLS-scoped client for tool reads; the tools also re-check org ownership.
   const supa = await getServerSupabase();
-  const toolContext = { supa, orgId: ctx.org.id };
+  const nowIso = new Date().toISOString();
+  const toolContext = { supa, orgId: ctx.org.id, nowIso };
 
   // 4. Anthropic client (server-only key).
   let client: Anthropic;
@@ -113,8 +114,8 @@ export async function POST(request: Request): Promise<Response> {
   // Ground the model in the current date so bare dates ("21 June") resolve to a
   // real year, and date filters land on the right window. Kept out of the static
   // prompt because it must be live per request.
-  const today = new Date().toISOString().slice(0, 10);
-  const system = `${ANALYST_SYSTEM_PROMPT}\n\nContext: today's date is ${today} (UTC). If the user gives a date without a year, assume the most recent occurrence on or before today. A date-only filter passed to list_sessions covers that whole day.`;
+  const today = nowIso.slice(0, 10);
+  const system = `${ANALYST_SYSTEM_PROMPT}\n\nContext: today's date is ${today} (UTC). If the user gives a date without a year, assume the most recent occurrence on or before today for recorded sessions, and the nearest upcoming one for questions about the agenda ("what's planned on Friday"). A date-only filter passed to list_sessions or list_events covers that whole day.`;
 
   try {
     for (let step = 0; step < ANALYST_MAX_STEPS; step++) {

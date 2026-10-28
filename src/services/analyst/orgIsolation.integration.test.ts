@@ -26,6 +26,12 @@
  *   ANALYST_IT_ORG_A_EMAIL=...  ANALYST_IT_ORG_A_PASSWORD=...  ANALYST_IT_ORG_A_ID=...
  *   ANALYST_IT_ORG_B_ID=...  ANALYST_IT_ORG_B_HORSE_ID=...  ANALYST_IT_ORG_B_SESSION_ID=...
  * then: ANALYST_IT=1 npx vitest run src/services/analyst/orgIsolation.integration.test.ts
+ *
+ * AGENDA (list_events / get_planned_vs_actual): seed the three calendar rows in
+ * docs/fixtures/analyst-it-calendar-seed.sql (local/disposable DB only) and add
+ *   ANALYST_IT_ORG_A_EVENT_ID=...  ANALYST_IT_ORG_B_EVENT_ID=...
+ *   ANALYST_IT_ORG_B_STABLE_EVENT_ID=...   (an org B event with NO horse_id)
+ * Without those three the agenda block skips on its own; the block above still runs.
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
@@ -33,6 +39,11 @@ import type { Database } from '@/types/db';
 import type { Supa } from '@/lib/supabase/types';
 import { listHorsesForAnalyst, listSessionsForAnalyst } from '@/services/analyst/lists';
 import { getSessionForAnalyst } from '@/services/analyst/sessionDetail';
+import {
+  getPlannedVsActualForAnalyst,
+  listEventsForAnalyst,
+} from '@/services/analyst/calendarTools';
+import { listEventsInWindow } from '@/data/calendarRepository';
 
 const cfg = {
   url: process.env.ANALYST_IT_SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
@@ -43,6 +54,9 @@ const cfg = {
   bOrgId: process.env.ANALYST_IT_ORG_B_ID ?? '',
   bHorseId: process.env.ANALYST_IT_ORG_B_HORSE_ID ?? '',
   bSessionId: process.env.ANALYST_IT_ORG_B_SESSION_ID ?? '',
+  aEventId: process.env.ANALYST_IT_ORG_A_EVENT_ID ?? '',
+  bEventId: process.env.ANALYST_IT_ORG_B_EVENT_ID ?? '',
+  bStableEventId: process.env.ANALYST_IT_ORG_B_STABLE_EVENT_ID ?? '',
 };
 
 const REQUIRED = [
@@ -58,6 +72,9 @@ const REQUIRED = [
 const ENABLED = process.env.ANALYST_IT === '1' && REQUIRED.every((v) => v.length > 0);
 
 const suite = ENABLED ? describe : describe.skip;
+const AGENDA_ENABLED =
+  ENABLED && [cfg.aEventId, cfg.bEventId, cfg.bStableEventId].every((v) => v.length > 0);
+const agendaSuite = AGENDA_ENABLED ? describe : describe.skip;
 
 async function signInAs(email: string, password: string): Promise<Supa> {
   const client = createClient<Database>(cfg.url, cfg.anon, {
@@ -99,5 +116,48 @@ suite('analyst org isolation — Org A cannot see Org B', () => {
   it('get_session for an Org B session returns null (not another org’s data)', async () => {
     const detail = await getSessionForAnalyst(supaA, cfg.aOrgId, { sessionId: cfg.bSessionId });
     expect(detail).toBeNull();
+  });
+});
+
+agendaSuite('analyst org isolation — agenda', () => {
+  let supaA: Supa;
+  const nowIso = new Date().toISOString();
+  // Wide enough to hold the seed rows (now + 1..2 days) whenever this runs.
+  const from = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
+  const to = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+
+  beforeAll(async () => {
+    supaA = await signInAs(cfg.aEmail, cfg.aPassword);
+  }, 30_000);
+
+  it('list_events returns Org A’s own event (positive guard) and no Org B event', async () => {
+    const result = await listEventsForAnalyst(supaA, cfg.aOrgId, { from, to, limit: 200 }, nowIso);
+    const ids = result.events.map((e) => e.eventId);
+    expect(ids).toContain(cfg.aEventId);
+    expect(ids).not.toContain(cfg.bEventId);
+    expect(ids).not.toContain(cfg.bStableEventId);
+  });
+
+  it('list_events with a spoofed Org B id returns []', async () => {
+    const result = await listEventsForAnalyst(supaA, cfg.bOrgId, { from, to, limit: 200 }, nowIso);
+    expect(result.events).toEqual([]);
+  });
+
+  it('list_events for an Org B horse returns []', async () => {
+    const result = await listEventsForAnalyst(supaA, cfg.aOrgId, { horseId: cfg.bHorseId, from, to }, nowIso);
+    expect(result.events).toEqual([]);
+  });
+
+  it('the repository alone (RLS, no app filter help) never returns Org B’s horse-less event', async () => {
+    // Asking for org B explicitly: only RLS stands between the caller and the row.
+    const startUtc = `${from}T00:00:00.000Z`;
+    const endUtc = `${to}T00:00:00.000Z`;
+    const events = await listEventsInWindow(supaA, { orgId: cfg.bOrgId, startUtc, endUtc });
+    expect(events).toEqual([]);
+  });
+
+  it('get_planned_vs_actual for an Org B session returns null', async () => {
+    const result = await getPlannedVsActualForAnalyst(supaA, cfg.aOrgId, { sessionId: cfg.bSessionId });
+    expect(result).toBeNull();
   });
 });

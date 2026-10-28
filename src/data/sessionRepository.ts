@@ -1,5 +1,5 @@
 import type { Supa } from '@/lib/supabase/types';
-import type { SessionRow } from '@/types/db';
+import type { Database, SessionRow } from '@/types/db';
 import { unwrap, unwrapMaybe } from '@/data/errors';
 
 export interface ListSessionsOptions {
@@ -61,4 +61,22 @@ export async function getLastSessionForHorse(
 ): Promise<SessionRow | null> {
   const rows = await listSessionsForHorse(supa, horseId, { limit: 1 });
   return rows[0] ?? null;
+}
+
+export type SessionInsert = Database['public']['Tables']['sessions']['Insert'];
+
+/**
+ * Inserts a session unless one with the same id exists; never updates.
+ * Returns true when this call created it. The id is the idempotency key, so
+ * the caller decides it (an import derives it from the file's hash).
+ */
+export async function insertSessionIfAbsent(supa: Supa, row: SessionInsert): Promise<boolean> {
+  const inserted = unwrap<Array<{ id: string }>>(
+    await supa
+      .from('sessions')
+      .upsert(row, { onConflict: 'id', ignoreDuplicates: true })
+      .select('id'),
+    'insertSessionIfAbsent',
+  );
+  return inserted.length > 0;
 }

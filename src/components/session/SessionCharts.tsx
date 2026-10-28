@@ -28,6 +28,7 @@ export function SessionCharts({
   efforts,
   gradientProfile,
   maxHr,
+  targetBand,
 }: {
   hr: ChartSeries | null;
   speed: ChartSeries | null;
@@ -36,6 +37,8 @@ export function SessionCharts({
   efforts: Effort[];
   gradientProfile: GradientPoint[];
   maxHr: number;
+  /** The planned HR range, when the session was ridden against one. */
+  targetBand?: { minBpm: number | null; maxBpm: number | null; label: string };
 }) {
   const panels = useMemo<PanelDef[]>(() => {
     const out: PanelDef[] = [];
@@ -142,6 +145,7 @@ export function SessionCharts({
               hoverT={hoverT}
               onHover={setHoverT}
               zoneBands={panel.zoneBacked ? zoneBands : undefined}
+              targetBand={panel.zoneBacked ? targetBand : undefined}
               valueFormat={panel.format}
               ariaLabel={`${panel.series.label} over time`}
             />

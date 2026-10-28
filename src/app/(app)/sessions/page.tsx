@@ -1,4 +1,6 @@
-import { Activity } from 'lucide-react';
+import Link from 'next/link';
+import { Activity, FileUp } from 'lucide-react';
+import { log } from '@/lib/log';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { getServerSupabase } from '@/lib/supabase/server';
@@ -9,7 +11,7 @@ import { getServerT } from '@/i18n/server';
 import type { SessionWithHorse } from '@/types/view';
 
 type LoadResult =
-  | { status: 'ok'; sessions: SessionWithHorse[] }
+  | { status: 'ok'; sessions: SessionWithHorse[]; canImport: boolean }
   | { status: 'error' }
   | { status: 'no-org' };
 
@@ -19,8 +21,9 @@ async function loadSessions(): Promise<LoadResult> {
   try {
     const supa = await getServerSupabase();
     const sessions = await getOrgSessions(supa, ctx.org.id, { finishedOnly: false });
-    return { status: 'ok', sessions };
-  } catch {
+    return { status: 'ok', sessions, canImport: ctx.capabilities.canImport };
+  } catch (err: unknown) {
+    log.error('sessions: could not load', { error: err instanceof Error ? err.message : String(err) });
     return { status: 'error' };
   }
 }
@@ -30,7 +33,21 @@ export default async function SessionsPage() {
 
   return (
     <>
-      <PageHeader title={t('sessionsPage.title')} description={t('sessionsPage.description')} />
+      <PageHeader
+        title={t('sessionsPage.title')}
+        description={t('sessionsPage.description')}
+        action={
+          result.status === 'ok' && result.canImport ? (
+            <Link
+              href="/sessions/import"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-line-strong px-3 text-[13px] font-medium text-text-primary hover:bg-surface-muted"
+            >
+              <FileUp size={15} />
+              {t('import.button')}
+            </Link>
+          ) : null
+        }
+      />
       {result.status === 'error' ? (
         <ErrorState description={t('sessionsPage.errorLoad')} />
       ) : result.status === 'no-org' || result.sessions.length === 0 ? (
