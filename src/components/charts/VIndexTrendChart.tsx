@@ -5,6 +5,7 @@ import { scaleLinear, scaleTime } from 'd3-scale';
 import { line as d3line } from 'd3-shape';
 import { useElementSize } from '@/hooks/useElementSize';
 import type { VTrendPoint } from '@/services/vIndexTrendService';
+import { distinctLabelTicks } from '@/services/chartMath';
 
 const MARGIN = { top: 12, right: 16, bottom: 28, left: 48 };
 
@@ -73,9 +74,9 @@ export function VIndexTrendChart({
                 </text>
               </g>
             ))}
-            {model.x.ticks(Math.max(2, Math.floor(innerW / 80))).map((d) => (
-              <text key={+d} x={model.x(d)} y={innerH + 18} textAnchor="middle" className="fill-[var(--color-text-tertiary)] text-[10px]">
-                {fmtDate(+d)}
+            {distinctLabelTicks(model.x.ticks(Math.max(2, Math.floor(innerW / 80))), (d) => fmtDate(+d)).map(({ tick, label }) => (
+              <text key={+tick} x={model.x(tick)} y={innerH + 18} textAnchor="middle" className="fill-[var(--color-text-tertiary)] text-[10px]">
+                {label}
               </text>
             ))}
             <path d={model.path} fill="none" stroke="var(--color-primary)" strokeWidth={1.8} />

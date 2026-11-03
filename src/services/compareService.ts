@@ -48,7 +48,7 @@ function colorFor(index: number): string {
   return SERIES_PALETTE[index % SERIES_PALETTE.length] ?? '#0058A2';
 }
 
-export function buildComparison(inputs: ComparisonInput[]): Comparison {
+export function buildComparison(inputs: ComparisonInput[], timeZone?: string): Comparison {
   const columns: ComparisonColumn[] = [];
   const hr: ChartSeries[] = [];
   const speed: ChartSeries[] = [];
@@ -56,7 +56,7 @@ export function buildComparison(inputs: ComparisonInput[]): Comparison {
 
   inputs.forEach(({ session, rows }, i) => {
     const color = colorFor(i);
-    const label = formatDate(session.started_at);
+    const label = formatDate(session.started_at, timeZone);
     columns.push({ session, label, color, metrics: computeSessionMetrics(session, rows) });
 
     const decorate = (s: ChartSeries): ChartSeries => ({

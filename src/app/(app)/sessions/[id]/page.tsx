@@ -31,6 +31,7 @@ import { loadSessionView, type SessionView } from '@/services/sessionViewService
 import { listSessionsForHorse } from '@/data/sessionRepository';
 import { TRAINING_TYPE_LABELS } from '@/services/labels';
 import { formatDateTime } from '@/services/format';
+import { getReaderTimeZone } from '@/lib/readerTimeZone.server';
 
 interface Neighbors {
   olderId: string | null;
@@ -69,7 +70,7 @@ export default async function SessionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [result, t] = await Promise.all([load(id), getServerT()]);
+  const [result, t, reader] = await Promise.all([load(id), getServerT(), getReaderTimeZone()]);
 
   if (result.status === 'not-found') notFound();
   if (result.status === 'error') {
@@ -97,11 +98,11 @@ export default async function SessionDetailPage({
       <div className="print-only mb-2">
         <LogoWordmark />
       </div>
-      <PrintReportHeader view={view} />
+      <PrintReportHeader view={view} timeZone={reader.timeZone} />
 
       <PageHeader
         title={horse.name}
-        description={formatDateTime(session.started_at)}
+        description={formatDateTime(session.started_at, reader.timeZone)}
         action={
           <div className="flex flex-col items-start gap-2 sm:items-end">
             <ExportBar
@@ -153,7 +154,7 @@ export default async function SessionDetailPage({
         <HrSpeedPanel analysis={view.hrSpeed} maxHr={view.maxHr} />
 
         <RecoveryPanel recovery={view.recovery} />
-        <HrvPanel hrv={view.hrv} />
+        <HrvPanel hrv={view.hrv} timeZone={reader.timeZone} />
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="space-y-6">

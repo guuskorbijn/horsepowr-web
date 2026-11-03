@@ -12,6 +12,9 @@ import {
   type Dossier,
 } from '@/services/dossier/dossierService';
 import { exportSlug } from '@/services/csvExport';
+import { formatDate, formatDayRange, formatTime } from '@/services/format';
+import { trainingTypeLabel } from '@/services/labels';
+import { useReaderTimeZone } from '@/lib/readerTimeZoneContext';
 
 /**
  * The printable training record.
@@ -27,19 +30,9 @@ import { exportSlug } from '@/services/csvExport';
  * training record is what it does NOT say.
  */
 
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function fmtTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+/** Whole bpm: an average with thirteen decimals reads as a bug, not as precision. */
+function bpm(value: number | null): string {
+  return value === null ? '—' : String(Math.round(value));
 }
 
 export function DossierDocument({
@@ -50,6 +43,8 @@ export function DossierDocument({
   horseId: string;
 }) {
   const { t } = useTranslation();
+  const timeZone = useReaderTimeZone();
+  const fmtDate = (iso: string): string => formatDate(iso, timeZone);
   const router = useRouter();
   const params = useSearchParams();
 
@@ -123,8 +118,7 @@ export function DossierDocument({
           </h1>
           <p className="text-[14px] text-text-secondary">
             {dossier.stableName ? `${dossier.stableName} · ` : ''}
-            {fmtDate(`${dossier.range.from}T00:00:00Z`)} –{' '}
-            {fmtDate(`${dossier.range.to}T00:00:00Z`)}
+            {formatDayRange(dossier.range.from, dossier.range.to)}
           </p>
           <p className="text-[12px] text-text-tertiary">
             {t('dossier.generated')} {fmtDate(dossier.generatedAt)}
@@ -192,11 +186,11 @@ export function DossierDocument({
                     <td className="border-b border-line px-2 py-1.5 text-text-primary">
                       {fmtDate(session.startedAt)}{' '}
                       <span className="text-text-tertiary">
-                        {fmtTime(session.startedAt)}
+                        {formatTime(session.startedAt, timeZone)}
                       </span>
                     </td>
                     <td className="border-b border-line px-2 py-1.5 text-text-secondary">
-                      {session.trainingType ?? '—'}
+                      {trainingTypeLabel(session.trainingType, t)}
                     </td>
                     <td className="tabular border-b border-line px-2 py-1.5 text-text-primary">
                       {Math.round(session.metrics.durationMs / 60_000)} min
@@ -207,10 +201,10 @@ export function DossierDocument({
                         : `${(session.metrics.distanceM / 1000).toFixed(1)} km`}
                     </td>
                     <td className="tabular border-b border-line px-2 py-1.5 text-text-primary">
-                      {session.metrics.avgHr ?? '—'}
+                      {bpm(session.metrics.avgHr)}
                     </td>
                     <td className="tabular border-b border-line px-2 py-1.5 text-right text-text-primary">
-                      {session.metrics.peakHr ?? '—'}
+                      {bpm(session.metrics.peakHr)}
                     </td>
                   </tr>
                 ))}

@@ -158,7 +158,7 @@ export function ImportFlow({ horses }: { horses: readonly HorseOption[] }) {
                   <option value="">{t('import.trainingTypeNone')}</option>
                   {TRAINING_TYPES.map((type) => (
                     <option key={type} value={type}>
-                      {t(`import.trainingType.${type}`)}
+                      {t(`trainingType.${type}`)}
                     </option>
                   ))}
                 </Select>

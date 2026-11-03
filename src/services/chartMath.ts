@@ -86,3 +86,22 @@ export function clampWindow(candidate: Domain, full: Domain): Domain {
   }
   return [Math.max(full[0], a), Math.min(full[1], b)];
 }
+
+/**
+ * Axis ticks whose LABELS are distinct, first one wins.
+ *
+ * A time scale over a few days ticks every few hours while the label shows
+ * only the day, so "24 Oct" printed four times in a row. Keeping the first
+ * tick per label is the whole fix; the scale itself is unchanged.
+ */
+export function distinctLabelTicks<T>(ticks: readonly T[], label: (tick: T) => string): Array<{ tick: T; label: string }> {
+  const seen = new Set<string>();
+  const out: Array<{ tick: T; label: string }> = [];
+  for (const tick of ticks) {
+    const text = label(tick);
+    if (seen.has(text)) continue;
+    seen.add(text);
+    out.push({ tick, label: text });
+  }
+  return out;
+}

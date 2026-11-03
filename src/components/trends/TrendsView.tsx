@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { useOrg } from '@/components/shell/OrgContext';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
@@ -36,7 +36,14 @@ async function loadHorseSeries(
   return buildHorseTrend(inputs, horse.name, color);
 }
 
-export function TrendsView({ horses }: { horses: HorseRow[] }) {
+export function TrendsView({
+  horses,
+  startingHorseId = null,
+}: {
+  horses: HorseRow[];
+  /** Plotted on arrival, so the page opens on numbers rather than a picker. */
+  startingHorseId?: string | null;
+}) {
   const { selectedLocationId, locations } = useOrg();
   const [mode, setMode] = useState<Mode>('horse');
   const [metric, setMetric] = useState<TrendMetric>('avgHr');
@@ -83,6 +90,15 @@ export function TrendsView({ horses }: { horses: HorseRow[] }) {
       if (token.current === t) setLoading(false);
     }
   }
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current || startingHorseId === null) return;
+    started.current = true;
+    void loadForHorse(startingHorseId);
+    // loadForHorse is recreated each render; the ref makes this run once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startingHorseId]);
+
 
   async function loadForLocation() {
     const t = ++token.current;

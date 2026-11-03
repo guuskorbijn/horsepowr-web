@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/Button';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { EmptyState } from '@/components/ui/states';
 import { TRAINING_TYPE_LABELS } from '@/services/labels';
-import { formatDateTime, formatDurationShort, formatRelativeDay } from '@/services/format';
+import { formatDateTime, formatDurationShort, formatRelativeDay, formatTime } from '@/services/format';
+import { useReaderTimeZone } from '@/lib/readerTimeZoneContext';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import type { TrainingType } from '@/types/db';
 import type { SessionWithHorse } from '@/types/view';
@@ -36,6 +37,7 @@ export function SessionsList({
   sessions: SessionWithHorse[];
   showFilters?: boolean;
 }) {
+  const timeZone = useReaderTimeZone();
   const { selectedLocationId, locations } = useOrg();
   const [filters, setFilters] = usePersistentState<SessionFilters>('hp.sessions.filters', NO_FILTERS);
   const f = showFilters ? filters : NO_FILTERS;
@@ -164,8 +166,9 @@ export function SessionsList({
                     ) : null}
                   </div>
                   <div className="mt-0.5 flex items-center gap-3 text-[13px] text-text-secondary">
-                    <span title={formatDateTime(session.started_at)}>
-                      {formatRelativeDay(session.started_at)}
+                    <span title={formatDateTime(session.started_at, timeZone)}>
+                      {formatRelativeDay(session.started_at, new Date(), timeZone)} ·{' '}
+                      {formatTime(session.started_at, timeZone)}
                     </span>
                     {loc ? (
                       <span className="inline-flex items-center gap-1">

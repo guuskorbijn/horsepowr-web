@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { GitCompareArrows } from 'lucide-react';
 import { useOrg } from '@/components/shell/OrgContext';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
@@ -14,10 +14,19 @@ import { listSessionsForHorse } from '@/data/sessionRepository';
 import { getMeasurements } from '@/data/measurementRepository';
 import { buildComparison, type Comparison } from '@/services/compareService';
 import { formatRelativeDay } from '@/services/format';
+import { useReaderTimeZone } from '@/lib/readerTimeZoneContext';
 import { cn } from '@/lib/cn';
 import type { HorseRow, SessionRow } from '@/types/db';
 
-export function CompareView({ horses }: { horses: HorseRow[] }) {
+export function CompareView({
+  horses,
+  startingHorseId = null,
+}: {
+  horses: HorseRow[];
+  /** Opened on this horse, its two latest finished sessions ticked. */
+  startingHorseId?: string | null;
+}) {
+  const timeZone = useReaderTimeZone();
   const { selectedLocationId } = useOrg();
   const visibleHorses = useMemo(
     () =>
@@ -38,7 +47,7 @@ export function CompareView({ horses }: { horses: HorseRow[] }) {
   // Guards against a stale response when the user switches horses quickly.
   const loadToken = useRef(0);
 
-  async function selectHorse(id: string) {
+  async function selectHorse(id: string, preselectLatest = false) {
     const token = ++loadToken.current;
     setHorseId(id);
     setSessions([]);
@@ -51,12 +60,24 @@ export function CompareView({ horses }: { horses: HorseRow[] }) {
       const rows = await listSessionsForHorse(getBrowserSupabase(), id);
       if (loadToken.current !== token) return;
       setSessions(rows);
+      // Rows come newest first; two is the smallest useful comparison.
+      if (preselectLatest) setSelectedIds(rows.filter((r) => r.ended_at !== null).slice(0, 2).map((r) => r.id));
     } catch {
       if (loadToken.current === token) setError('Could not load this horse’s sessions.');
     } finally {
       if (loadToken.current === token) setSessionsLoading(false);
     }
   }
+
+  // Open on a horse rather than on an empty picker. Runs once: the picker owns
+  // the choice after that.
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current || startingHorseId === null) return;
+    started.current = true;
+    void selectHorse(startingHorseId, true);
+    // The ref makes this run once; the picker owns the choice after that.
+  }, [startingHorseId]);
 
   function toggle(id: string) {
     setSelectedIds((prev) =>
@@ -77,7 +98,7 @@ export function CompareView({ horses }: { horses: HorseRow[] }) {
           rows: await getMeasurements(supa, session.id),
         })),
       );
-      setComparison(buildComparison(inputs));
+      setComparison(buildComparison(inputs, timeZone));
     } catch {
       setError('Could not load measurements for the selected sessions.');
     } finally {
@@ -128,7 +149,7 @@ export function CompareView({ horses }: { horses: HorseRow[] }) {
                         )}
                       >
                         <span className="text-[14px] text-text-primary">
-                          {formatRelativeDay(s.started_at)}
+                          {formatRelativeDay(s.started_at, new Date(), timeZone)}
                         </span>
                         {checked ? <StatusPill tone="info">Selected</StatusPill> : null}
                       </button>
