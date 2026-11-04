@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/Card';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { HorseAvatar } from '@/components/horse/HorseAvatar';
 import { daysSince, formatDurationShort, formatRelativeDay } from '@/services/format';
+import { useReaderTimeZone } from '@/lib/readerTimeZoneContext';
 import type { HorseLastSession } from '@/types/view';
 
 function durationMs(startedAt: string, endedAt: string | null): number | null {
@@ -14,7 +15,8 @@ function durationMs(startedAt: string, endedAt: string | null): number | null {
 export function HorseCard({ entry }: { entry: HorseLastSession }) {
   const { horse, lastSession } = entry;
   const d = lastSession ? durationMs(lastSession.started_at, lastSession.ended_at) : null;
-  const sinceDays = lastSession ? daysSince(lastSession.started_at) : null;
+  const timeZone = useReaderTimeZone();
+  const sinceDays = lastSession ? daysSince(lastSession.started_at, new Date(), timeZone) : null;
 
   return (
     <Card className="flex flex-col gap-3 p-5">
@@ -45,7 +47,7 @@ export function HorseCard({ entry }: { entry: HorseLastSession }) {
         >
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 text-[13px] text-text-secondary">
-              <Clock size={14} /> {formatRelativeDay(lastSession.started_at)}
+              <Clock size={14} /> {formatRelativeDay(lastSession.started_at, new Date(), timeZone)}
             </span>
             {lastSession.synced ? (
               <StatusPill tone="success" icon={<CheckCheck size={13} />}>

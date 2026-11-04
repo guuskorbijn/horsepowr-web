@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { scaleLinear, scaleTime } from 'd3-scale';
 import { line as d3line } from 'd3-shape';
 import { useElementSize } from '@/hooks/useElementSize';
+import { distinctLabelTicks } from '@/services/chartMath';
 import type { TrendMetric, TrendSeries } from '@/services/trendService';
 
 const MARGIN = { top: 10, right: 16, bottom: 28, left: 48 };
@@ -90,15 +91,15 @@ export function TrendChart({
                 </text>
               </g>
             ))}
-            {xScale.ticks(Math.max(2, Math.floor(innerW / 80))).map((d) => (
+            {distinctLabelTicks(xScale.ticks(Math.max(2, Math.floor(innerW / 80))), (d) => fmtDate(+d)).map(({ tick, label }) => (
               <text
-                key={+d}
-                x={xScale(d)}
+                key={+tick}
+                x={xScale(tick)}
                 y={innerH + 18}
                 textAnchor="middle"
                 className="fill-[var(--color-text-tertiary)] text-[10px]"
               >
-                {fmtDate(+d)}
+                {label}
               </text>
             ))}
             {plotted.map((s) => (

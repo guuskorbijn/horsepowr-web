@@ -12,6 +12,7 @@ import {
   type Agenda,
   type AgendaItem,
 } from '@/services/calendar/agendaService';
+import { formatDayKey } from '@/services/format';
 import {
   emptyFormValues,
   eventToFormValues,
@@ -69,7 +70,9 @@ const TYPE_ACCENT: Record<CalendarEventType, string> = {
 };
 
 function weekdayLabel(dayKey: string, long: boolean): string {
-  return new Date(`${dayKey}T00:00:00Z`).toLocaleDateString(undefined, {
+  // A fixed locale: `undefined` meant the server's locale on the first
+  // render and the browser's after hydration, so the weekday could flip.
+  return new Date(`${dayKey}T00:00:00Z`).toLocaleDateString('en-GB', {
     weekday: long ? 'long' : 'short',
     timeZone: 'UTC',
   });
@@ -585,7 +588,7 @@ export function AgendaBoard({
           className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface-muted px-4 py-2.5"
         >
           <p className="text-[13px] text-text-primary">
-            {t('agenda.move.moved')} {moved.targetDayKey}
+            {t('agenda.move.moved')} {formatDayKey(moved.targetDayKey)}
           </p>
           <Button
             type="button"

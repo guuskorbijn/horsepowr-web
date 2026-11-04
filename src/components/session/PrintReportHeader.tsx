@@ -13,7 +13,7 @@ import type { SessionView } from '@/services/sessionViewService';
  * analyst-grade handout: who/when, the headline measured metrics, and the
  * V-index values up top. Descriptive only; hidden on screen.
  */
-export function PrintReportHeader({ view }: { view: SessionView }) {
+export function PrintReportHeader({ view, timeZone }: { view: SessionView; timeZone: string }) {
   const { session, horse, metrics, hrSpeed } = view;
 
   const facts: Array<{ label: string; value: string }> = [
@@ -31,7 +31,7 @@ export function PrintReportHeader({ view }: { view: SessionView }) {
         <h1 className="font-display text-[22px] font-semibold text-text-primary">
           {horse.name}: session report
         </h1>
-        <span className="text-[13px] text-text-secondary">{formatDateTime(session.started_at)}</span>
+        <span className="text-[13px] text-text-secondary">{formatDateTime(session.started_at, timeZone)}</span>
       </div>
       <div className="mt-1 text-[12px] text-text-secondary">
         {session.training_type ? TRAINING_TYPE_LABELS[session.training_type] : 'Session'}

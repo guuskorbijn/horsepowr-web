@@ -8,6 +8,7 @@ import { useTranslation } from '@/i18n/LocaleProvider';
 import { cn } from '@/lib/cn';
 import { agendaHref, type AgendaQuery } from '@/services/calendar/agendaQuery';
 import { AGENDA_VIEWS, shiftAgenda, type AgendaWindow } from '@/services/calendar/agendaService';
+import { formatDayKey, formatDayRange } from '@/services/format';
 
 interface Option {
   id: string;
@@ -45,7 +46,7 @@ export function AgendaToolbar({
     agendaHref(basePath, { ...query, date: shiftAgenda(span.view, span.startDayKey, delta) });
 
   const rangeLabel =
-    span.view === 'day' ? span.startDayKey : `${span.startDayKey} – ${span.endDayKey}`;
+    span.view === 'day' ? formatDayKey(span.startDayKey) : formatDayRange(span.startDayKey, span.endDayKey);
 
   return (
     <div className="mb-4 flex flex-col gap-3">

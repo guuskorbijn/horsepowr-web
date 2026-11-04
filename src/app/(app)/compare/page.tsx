@@ -7,27 +7,36 @@ import { listHorses } from '@/data/horseRepository';
 import { CompareView } from '@/components/compare/CompareView';
 import { LogoWordmark } from '@/components/brand/Logo';
 import { getServerT } from '@/i18n/server';
+import { resolveStartingHorse } from '@/services/startingHorse';
+import { log } from '@/lib/log';
 import type { HorseRow } from '@/types/db';
 
 type LoadResult =
-  | { status: 'ok'; horses: HorseRow[] }
+  | { status: 'ok'; horses: HorseRow[]; startingHorseId: string | null }
   | { status: 'error' }
   | { status: 'no-org' };
 
-async function load(): Promise<LoadResult> {
+async function load(requestedHorse: string | null): Promise<LoadResult> {
   const ctx = await requireSessionContext();
   if (!ctx.org) return { status: 'no-org' };
   try {
     const supa = await getServerSupabase();
     const horses = await listHorses(supa, ctx.org.id);
-    return { status: 'ok', horses };
-  } catch {
+    const startingHorseId = await resolveStartingHorse(supa, horses, requestedHorse);
+    return { status: 'ok', horses, startingHorseId };
+  } catch (err: unknown) {
+    log.error('analysis page: could not load', { error: err instanceof Error ? err.message : String(err) });
     return { status: 'error' };
   }
 }
 
-export default async function ComparePage() {
-  const [result, t] = await Promise.all([load(), getServerT()]);
+export default async function ComparePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ horse?: string }>;
+}) {
+  const params = await searchParams;
+  const [result, t] = await Promise.all([load(params.horse ?? null), getServerT()]);
 
   return (
     <>
@@ -44,7 +53,7 @@ export default async function ComparePage() {
           description={t('comparePage.emptyDescription')}
         />
       ) : (
-        <CompareView horses={result.horses} />
+        <CompareView horses={result.horses} startingHorseId={result.startingHorseId} />
       )}
     </>
   );

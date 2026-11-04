@@ -264,6 +264,7 @@ export const en = {
       height: 'Height',
       weight: 'Weight',
       microchip: 'Microchip',
+      location: 'Location',
     },
     form: {
       addTitle: 'Add horse',
@@ -408,12 +409,6 @@ export const en = {
     chooseAnother: 'Choose another file',
     openSession: 'Open session',
     importAnother: 'Import another file',
-    trainingType: {
-      dressage: 'Dressage',
-      cross_country: 'Cross-country',
-      conditioning: 'Conditioning',
-      other: 'Other',
-    },
     stat: {
       start: 'Start (UTC)',
       duration: 'Duration',
@@ -464,6 +459,12 @@ export const en = {
       network: 'Could not reach the server. Check your connection and try again.',
       unauthenticated: 'Your session expired. Sign in again.',
     },
+  },
+  trainingType: {
+    dressage: 'Dressage',
+    cross_country: 'Cross-country',
+    conditioning: 'Conditioning',
+    other: 'Other',
   },
   roles: {
     trainer: 'Trainer',

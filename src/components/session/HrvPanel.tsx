@@ -1,5 +1,6 @@
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { MIN_BEATS_FOR_HRV, type HrvResult } from '@/services/hrv/hrvService';
+import { formatTime } from '@/services/format';
 
 /**
  * Beat-to-beat variability over the session's calmest stretch.
@@ -25,13 +26,8 @@ function formatMs(value: number | null, digits = 0): string {
   return value === null ? '—' : `${value.toFixed(digits)} ms`;
 }
 
-function clockRange(from: string, to: string): string {
-  const fmt = (iso: string): string =>
-    new Date(iso).toLocaleTimeString(undefined, {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  return `${fmt(from)}–${fmt(to)}`;
+function clockRange(from: string, to: string, timeZone: string): string {
+  return `${formatTime(from, timeZone)}–${formatTime(to, timeZone)}`;
 }
 
 function Figure({
@@ -54,7 +50,7 @@ function Figure({
   );
 }
 
-export function HrvPanel({ hrv }: { hrv: HrvResult }) {
+export function HrvPanel({ hrv, timeZone }: { hrv: HrvResult; timeZone: string }) {
   const header = (
     <CardHeader
       title="Beat-to-beat variability"
@@ -117,7 +113,7 @@ export function HrvPanel({ hrv }: { hrv: HrvResult }) {
         <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-line pt-3 text-[12px] text-text-secondary">
           <span>
             <span className="text-text-tertiary">Window: </span>
-            {hrv.window ? clockRange(hrv.window.from, hrv.window.to) : '—'}
+            {hrv.window ? clockRange(hrv.window.from, hrv.window.to, timeZone) : '—'}
           </span>
           <span>
             <span className="text-text-tertiary">Usable beats: </span>

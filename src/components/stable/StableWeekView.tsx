@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { useTranslation } from '@/i18n/LocaleProvider';
 import { shiftAgenda } from '@/services/calendar/agendaService';
+import { formatDayRange } from '@/services/format';
 import { cn } from '@/lib/cn';
 import type { StableWeek } from '@/services/stable/stableWeekService';
 
@@ -95,7 +96,7 @@ export function StableWeekView({
         </Link>
         <div className="flex items-center gap-3">
           <p className="text-[14px] font-medium text-text-primary">
-            {startDayKey} &ndash; {endDayKey}
+            {formatDayRange(startDayKey, endDayKey)}
           </p>
           {!showsToday ? (
             <Link

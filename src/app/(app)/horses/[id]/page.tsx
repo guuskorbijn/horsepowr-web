@@ -12,21 +12,21 @@ import { requireSessionContext } from '@/lib/session';
 import { getHorse } from '@/data/horseRepository';
 import { listSessionsForHorse } from '@/data/sessionRepository';
 import { getServerT } from '@/i18n/server';
-import type { HorseRow, SessionRow } from '@/types/db';
+import type { HorseRow, LocationRow, SessionRow } from '@/types/db';
 
 type LoadResult =
-  | { status: 'ok'; horse: HorseRow; sessions: SessionRow[] }
+  | { status: 'ok'; horse: HorseRow; sessions: SessionRow[]; locations: LocationRow[] }
   | { status: 'not-found' }
   | { status: 'error' };
 
 async function load(id: string): Promise<LoadResult> {
-  await requireSessionContext();
+  const ctx = await requireSessionContext();
   try {
     const supa = await getServerSupabase();
     const horse = await getHorse(supa, id);
     if (!horse) return { status: 'not-found' };
     const sessions = await listSessionsForHorse(supa, id);
-    return { status: 'ok', horse, sessions };
+    return { status: 'ok', horse, sessions, locations: ctx.locations };
   } catch {
     return { status: 'error' };
   }
@@ -50,7 +50,7 @@ export default async function HorseDetailPage({
     );
   }
 
-  const { horse, sessions } = result;
+  const { horse, sessions, locations } = result;
   return (
     <>
       <BackLink label={t('nav.commandCenter')} />
@@ -81,7 +81,7 @@ export default async function HorseDetailPage({
         }
       />
       <div className="space-y-6">
-        <HorseDetailsCard horse={horse} />
+        <HorseDetailsCard horse={horse} locations={locations} />
         {sessions.length === 0 ? (
           <EmptyState
             title={t('horses.noSessionsTitle')}

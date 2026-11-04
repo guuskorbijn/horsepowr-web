@@ -259,6 +259,7 @@ export const nl = {
       height: 'Schofthoogte',
       weight: 'Gewicht',
       microchip: 'Chipnummer',
+      location: 'Locatie',
     },
     form: {
       addTitle: 'Paard toevoegen',
@@ -403,12 +404,6 @@ export const nl = {
     chooseAnother: 'Ander bestand kiezen',
     openSession: 'Sessie openen',
     importAnother: 'Nog een bestand importeren',
-    trainingType: {
-      dressage: 'Dressuur',
-      cross_country: 'Cross-country',
-      conditioning: 'Conditie',
-      other: 'Overig',
-    },
     stat: {
       start: 'Start (UTC)',
       duration: 'Duur',
@@ -459,6 +454,12 @@ export const nl = {
       network: 'De server is niet bereikbaar. Controleer je verbinding en probeer het opnieuw.',
       unauthenticated: 'Je sessie is verlopen. Log opnieuw in.',
     },
+  },
+  trainingType: {
+    dressage: 'Dressuur',
+    cross_country: 'Cross-country',
+    conditioning: 'Conditie',
+    other: 'Overig',
   },
   roles: {
     trainer: 'Trainer',
