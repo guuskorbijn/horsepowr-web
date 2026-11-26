@@ -27,6 +27,7 @@ import { notifyCalendarChange } from '@/services/notifications/notifyCalendarCha
 import { log } from '@/lib/log';
 import { cn } from '@/lib/cn';
 import { FadeIn } from '@/components/motion/FadeIn';
+import { TYPE_ACCENT } from '@/services/calendar/eventTypeAccent';
 import { useFlip } from '@/lib/useFlip';
 import { useLive } from '@/components/live/LiveProvider';
 import { EventFormDialog } from '@/components/agenda/EventFormDialog';
@@ -62,14 +63,6 @@ import type { HorseRow, LocationRow, ProfileRow } from '@/types/db';
  * Every value here is a theme token. Coral (`--accent`) is absent on purpose:
  * it is reserved for the single primary action on a screen.
  */
-const TYPE_ACCENT: Record<CalendarEventType, string> = {
-  training: 'var(--primary)',
-  vet: 'var(--info)',
-  physio: 'var(--success)',
-  farrier: 'var(--warning)',
-  competition: 'var(--color-gait-canter)',
-  other: 'var(--line-strong)',
-};
 
 function weekdayLabel(dayKey: string, long: boolean): string {
   // A fixed locale: `undefined` meant the server's locale on the first
