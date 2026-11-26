@@ -16,4 +16,5 @@ export const MIRROR = [
   ['src/constants/motion.ts', 'src/theme/motion.ts'],
   ['src/services/calendar/targetBlocks.ts', 'src/services/calendar/targetBlocks.ts'],
   ['src/services/calendar/conflictResolution.ts', 'src/services/calendar/conflictResolution.ts'],
+  ['src/services/health/healthReminders.ts', 'src/services/health/healthReminders.ts'],
 ];

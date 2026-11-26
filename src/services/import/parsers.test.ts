@@ -151,7 +151,7 @@ describe('registry', () => {
   });
 
   it('refuses unknown extensions and empty files', () => {
-    expectRefusal(() => parse('ride.csv', fixture('ride.tcx')), 'unsupported-extension');
+    expectRefusal(() => parse('ride.xlsx', fixture('ride.tcx')), 'unsupported-extension');
     expectRefusal(() => parse('ride.tcx', new Uint8Array()), 'empty');
   });
 

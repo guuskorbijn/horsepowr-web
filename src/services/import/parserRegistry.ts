@@ -1,3 +1,4 @@
+import { csvParser } from '@/services/import/csvParser';
 import { fitParser } from '@/services/import/fitParser';
 import { gpxParser } from '@/services/import/gpxParser';
 import { tcxParser } from '@/services/import/tcxParser';
@@ -42,6 +43,6 @@ export function createParserRegistry(parsers: readonly ActivityParser[]): Parser
 }
 
 /** The formats HorsePowr reads today. */
-export const DEFAULT_PARSERS: readonly ActivityParser[] = [tcxParser, gpxParser, fitParser];
+export const DEFAULT_PARSERS: readonly ActivityParser[] = [tcxParser, gpxParser, fitParser, csvParser];
 
 export const defaultParserRegistry = createParserRegistry(DEFAULT_PARSERS);

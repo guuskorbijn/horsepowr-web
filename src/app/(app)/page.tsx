@@ -7,9 +7,13 @@ import { getHorsesWithLastSession } from '@/services/sessionListService';
 import { CommandCenter } from '@/components/command/CommandCenter';
 import { getServerT } from '@/i18n/server';
 import type { HorseLastSession } from '@/types/view';
+import { HealthRemindersCard } from '@/components/command/HealthRemindersCard';
+import { listExpiringCandidates } from '@/data/healthRecordRepository';
+import { expiringRecords, type HealthReminder } from '@/services/health/healthReminders';
+import { log } from '@/lib/log';
 
 type LoadResult =
-  | { status: 'ok'; horses: HorseLastSession[] }
+  | { status: 'ok'; horses: HorseLastSession[]; reminders: HealthReminder[] }
   | { status: 'error' }
   | { status: 'no-org' };
 
@@ -18,8 +22,18 @@ async function load(): Promise<LoadResult> {
   if (!ctx.org) return { status: 'no-org' };
   try {
     const supa = await getServerSupabase();
-    const horses = await getHorsesWithLastSession(supa, ctx.org.id);
-    return { status: 'ok', horses };
+    const [horses, candidates] = await Promise.all([
+      getHorsesWithLastSession(supa, ctx.org.id),
+      // Reminders are an extra on this page, never a reason it fails.
+      listExpiringCandidates(supa, ctx.org.id).catch((err: unknown) => {
+        log.error('dashboard: health reminders unavailable', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+        return [];
+      }),
+    ]);
+    const today = new Date().toISOString().slice(0, 10);
+    return { status: 'ok', horses, reminders: expiringRecords(candidates, today) };
   } catch {
     return { status: 'error' };
   }
@@ -51,7 +65,14 @@ export default async function CommandCenterPage() {
           description={t('command.emptyDescription')}
         />
       ) : (
-        <CommandCenter horses={result.horses} />
+        <>
+          <HealthRemindersCard
+            reminders={result.reminders}
+            horseNames={new Map(result.horses.map((h) => [h.horse.id, h.horse.name]))}
+            t={t}
+          />
+          <CommandCenter horses={result.horses} />
+        </>
       )}
     </>
   );

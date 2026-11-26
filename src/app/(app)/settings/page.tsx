@@ -3,6 +3,7 @@ import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { ThemeSelector } from '@/components/settings/ThemeSelector';
 import { LanguageSelector } from '@/components/settings/LanguageSelector';
 import { StableLogoCard } from '@/components/manage/StableLogoCard';
+import { PolarConnectionCard } from '@/components/settings/PolarConnectionCard';
 import { requireSessionContext } from '@/lib/session';
 import { getServerT } from '@/i18n/server';
 
@@ -34,6 +35,7 @@ export default async function SettingsPage() {
             initialLogoUrl={ctx.org.logo_url}
           />
         ) : null}
+        <PolarConnectionCard canImport={ctx.capabilities.canImport} />
       </div>
     </>
   );

@@ -8,6 +8,7 @@ import {
   TrendingUp,
   Sparkles,
   Settings,
+  Contact,
 } from 'lucide-react';
 import { HorseIcon } from '@/components/icons/HorseIcon';
 
@@ -31,5 +32,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/trends', labelKey: 'nav.trends', icon: TrendingUp },
   { href: '/analyst', labelKey: 'nav.analyst', icon: Sparkles },
   { href: '/horses', labelKey: 'nav.horses', icon: HorseIcon },
+  { href: '/contacts', labelKey: 'nav.contacts', icon: Contact },
   { href: '/settings', labelKey: 'nav.settings', icon: Settings },
 ];
