@@ -15,6 +15,8 @@ import { listHealthRecordsForHorse } from '@/data/healthRecordRepository';
 import { listContacts, listHorseContactLinks } from '@/data/contactRepository';
 import { HorseHealthCard } from '@/components/horse/HorseHealthCard';
 import { HorseContactsCard } from '@/components/horse/HorseContactsCard';
+import { TrainingCalendarCard } from '@/components/horse/TrainingCalendarCard';
+import { buildTrainingCalendar } from '@/services/trainingCalendar';
 import { getServerT } from '@/i18n/server';
 import type { ContactRow, HealthRecordRow, HorseRow, LocationRow, SessionRow } from '@/types/db';
 
@@ -112,6 +114,9 @@ export default async function HorseDetailPage({
       />
       <div className="space-y-6">
         <HorseDetailsCard horse={horse} locations={locations} />
+        <TrainingCalendarCard
+          calendar={buildTrainingCalendar(sessions, new Date().toISOString().slice(0, 10))}
+        />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[3fr_2fr]">
           <HorseHealthCard
             horseId={horse.id}

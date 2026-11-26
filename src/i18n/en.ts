@@ -496,6 +496,15 @@ export const en = {
     storyBouts: '{measured} of {planned} intervals at {range}',
     storyBoutsNoRange: '{measured} of {planned} intervals',
   },
+  trainingCalendar: {
+    title: 'Training calendar',
+    subtitle: 'Minutes trained per day over the last 26 weeks. Darker is longer.',
+    rest: 'no session',
+    perWeek: 'Minutes per week',
+    last4: 'Last 4 weeks',
+    prev4: '4 weeks before',
+    sessionsMinutes: '{sessions} sessions · {time}',
+  },
   home: {
     kpiToday: 'Planned today',
     kpiDone: 'Done today',

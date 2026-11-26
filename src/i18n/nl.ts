@@ -491,6 +491,15 @@ export const nl = {
     storyBouts: '{measured} van {planned} intervallen op {range}',
     storyBoutsNoRange: '{measured} van {planned} intervallen',
   },
+  trainingCalendar: {
+    title: 'Trainingskalender',
+    subtitle: 'Getrainde minuten per dag over de laatste 26 weken. Donkerder is langer.',
+    rest: 'geen training',
+    perWeek: 'Minuten per week',
+    last4: 'Laatste 4 weken',
+    prev4: '4 weken daarvoor',
+    sessionsMinutes: '{sessions} trainingen · {time}',
+  },
   home: {
     kpiToday: 'Vandaag gepland',
     kpiDone: 'Vandaag gedaan',
