@@ -29,6 +29,9 @@ import { cn } from '@/lib/cn';
 import { FadeIn } from '@/components/motion/FadeIn';
 import { TYPE_ACCENT } from '@/services/calendar/eventTypeAccent';
 import { useFlip } from '@/lib/useFlip';
+import { AgendaComposer } from '@/components/agenda/AgendaComposer';
+import { applyQuickAdd, applyTemplate } from '@/services/calendar/prefill';
+import type { TrainingTemplate } from '@/data/templateRepository';
 import { useLive } from '@/components/live/LiveProvider';
 import { EventFormDialog } from '@/components/agenda/EventFormDialog';
 import { OccurrenceDetailDialog } from '@/components/agenda/OccurrenceDetailDialog';
@@ -199,7 +202,8 @@ function DayColumn({
 }) {
   const { t } = useTranslation();
   const dayNumber = Number(dayKey.slice(8, 10));
-  const isDropTarget = drag.overDayKey === dayKey && drag.sourceDayKey !== dayKey;
+  const isDropTarget =
+    drag.overDayKey === dayKey && (drag.templateActive || drag.sourceDayKey !== dayKey);
 
   return (
     <div
@@ -211,13 +215,18 @@ function DayColumn({
         isDropTarget && 'bg-primary-soft ring-2 ring-primary ring-offset-2 ring-offset-app',
       )}
       onDragOver={(e) => {
-        if (!drag.active) return;
+        if (!drag.active && !drag.templateActive) return;
         // Without preventDefault the browser refuses the drop outright.
         e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
+        e.dataTransfer.dropEffect = drag.templateActive ? 'copy' : 'move';
         drag.onDragOverDay(dayKey);
       }}
       onDrop={(e) => {
+        if (drag.templateActive) {
+          e.preventDefault();
+          drag.onTemplateDropOnDay(dayKey);
+          return;
+        }
         if (!drag.active) return;
         e.preventDefault();
         drag.onDropOnDay(dayKey);
@@ -281,6 +290,9 @@ function DayColumn({
  * one of them ends up out of step with the others.
  */
 interface DragApi {
+  /** A template chip is being dragged (copy onto a day, not a move). */
+  templateActive: boolean;
+  onTemplateDropOnDay: (dayKey: string) => void;
   /** The card that was just dropped and is being written. */
   pendingKey: string | null;
   active: boolean;
@@ -319,6 +331,7 @@ export function AgendaBoard({
   horses,
   locations,
   assignees,
+  templates = [],
 }: {
   agenda: Agenda;
   horseNames: Record<string, string>;
@@ -336,9 +349,12 @@ export function AgendaBoard({
   horses: readonly HorseRow[];
   locations: readonly LocationRow[];
   assignees: readonly ProfileRow[];
+  templates?: readonly TrainingTemplate[];
 }) {
   const { t } = useTranslation();
   const router = useRouter();
+  const templateDrag = useRef<TrainingTemplate | null>(null);
+  const [templateActive, setTemplateActive] = useState(false);
   const span = agenda.window;
   const empty = agenda.isEmpty;
 
@@ -505,6 +521,14 @@ export function AgendaBoard({
   }, [moved]);
 
   const drag: DragApi = {
+    templateActive,
+    onTemplateDropOnDay: (dayKey) => {
+      const tpl = templateDrag.current;
+      templateDrag.current = null;
+      setTemplateActive(false);
+      overDay(null);
+      if (tpl !== null) openPrefilled(dayKey, (base) => applyTemplate(base, tpl));
+    },
     active: draggingKey !== null,
     pendingKey: pendingMove?.key ?? null,
     draggingKey,
@@ -523,6 +547,36 @@ export function AgendaBoard({
     onDropOnDay: (dayKey) => void handleDrop(dayKey),
     onDragEnd: endDrag,
   };
+
+  const baseValues = (dayKey: string) => ({
+    ...emptyFormValues({ dayKey, timeZone: span.readerTimeZone, horseId: defaults.horseId ?? null }),
+    assigneeId: defaults.assigneeId ?? null,
+  });
+  const openPrefilled = (
+    dayKey: string,
+    fill: (base: ReturnType<typeof baseValues>) => ReturnType<typeof baseValues>,
+  ): void =>
+    setForm({ values: fill(baseValues(dayKey)), eventId: null, occurrenceStart: null, isSeries: false });
+  const todayKey = agenda.days.find((d) => d.isToday)?.dayKey ?? span.startDayKey;
+
+  // Shortcuts: "/" jumps into quick add, "n" opens a new item for today.
+  useEffect(() => {
+    if (!canEdit) return;
+    const onKey = (e: KeyboardEvent): void => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === '/') {
+        e.preventDefault();
+        document.getElementById('agenda-quick-add')?.focus();
+      } else if (e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        setForm({ values: baseValues(todayKey), eventId: null, occurrenceStart: null, isSeries: false });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
   const openCreate = (dayKey: string): void =>
     setForm({
@@ -584,6 +638,25 @@ export function AgendaBoard({
             </Button>
           ) : null}
         </div>
+      ) : null}
+
+      {canEdit ? (
+        <AgendaComposer
+          todayKey={todayKey}
+          horses={horses.map((h) => ({ id: h.id, name: h.name }))}
+          templates={templates}
+          onQuickAdd={(q) => openPrefilled(q.dayKey ?? todayKey, (base) => applyQuickAdd(base, q))}
+          onTemplate={(tpl) => openPrefilled(todayKey, (base) => applyTemplate(base, tpl))}
+          onTemplateDragStart={(tpl) => {
+            templateDrag.current = tpl;
+            requestAnimationFrame(() => setTemplateActive(true));
+          }}
+          onTemplateDragEnd={() => {
+            templateDrag.current = null;
+            setTemplateActive(false);
+            overDay(null);
+          }}
+        />
       ) : null}
 
       {/* Drag is invisible until you try it, so it gets one quiet line. Only

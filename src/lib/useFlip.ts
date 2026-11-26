@@ -1,5 +1,6 @@
 'use client';
 
+import { prefersReducedMotion } from '@/lib/reducedMotion';
 import { useLayoutEffect, useRef, type RefObject } from 'react';
 
 /**
@@ -18,7 +19,7 @@ export function useFlip(container: RefObject<HTMLElement | null>, durationMs = 3
   useLayoutEffect(() => {
     const root = container.current;
     if (root === null) return;
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduce = prefersReducedMotion() || typeof Element.prototype.animate !== 'function';
     const next = new Map<string, DOMRect>();
     const first = boxes.current.size === 0;
 

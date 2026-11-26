@@ -158,6 +158,9 @@ export const nl = {
       deleteSeriesWarning: 'Hiermee verdwijnt de hele reeks uit de agenda van iedereen in de stal.',
     },
     form: {
+      saveAsTemplate: 'Bewaar als sjabloon',
+      templateSaved: 'Bewaard als sjabloon',
+      untitledTemplate: 'Trainingssjabloon',
       intervalEveryLabel: 'Herhaal elke',
       intervalUnitLabel: 'Eenheid',
       intervalUnitDay: 'dagen',
@@ -499,6 +502,14 @@ export const nl = {
     last4: 'Laatste 4 weken',
     prev4: '4 weken daarvoor',
     sessionsMinutes: '{sessions} trainingen · {time}',
+  },
+  composer: {
+    label: 'Snel toevoegen',
+    placeholder: 'Typ om te plannen… bv. “hoefsmid Bella dinsdag 9u” of “interval Milano elke ma/do 8:30”',
+    understood: 'Begrepen:',
+    repeats: 'herhaalt',
+    templates: 'Sjablonen',
+    templateHint: 'Klik om vandaag te plannen, of sleep naar een dag',
   },
   home: {
     kpiToday: 'Vandaag gepland',

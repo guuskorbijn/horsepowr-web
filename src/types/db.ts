@@ -294,6 +294,33 @@ export type PolarInboxRow = {
   updated_at: string;
 };
 
+/** `training_templates` (20261127000001). */
+export type TrainingTemplateRow = {
+  id: string;
+  org_id: string;
+  name: string;
+  training_type: string | null;
+  duration_min: number | null;
+  targets: unknown;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+/** `event_checklist_items` (20261127000001). */
+export type ChecklistItemRow = {
+  id: string;
+  org_id: string;
+  event_id: string;
+  label: string;
+  done: boolean;
+  position: number;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export interface Database {
   public: {
     Tables: {
@@ -374,6 +401,14 @@ export interface Database {
           'id' | 'duration_sec' | 'sport' | 'has_hr' | 'suggested_horse_id' | 'status'
           | 'session_id' | 'created_at' | 'updated_at'
         >
+      >;
+      training_templates: TableDef<
+        TrainingTemplateRow,
+        InsertOf<TrainingTemplateRow, 'id' | 'training_type' | 'duration_min' | 'targets' | 'created_by' | 'created_at' | 'updated_at' | 'deleted_at'>
+      >;
+      event_checklist_items: TableDef<
+        ChecklistItemRow,
+        InsertOf<ChecklistItemRow, 'id' | 'done' | 'position' | 'updated_by' | 'created_at' | 'updated_at'>
       >;
       session_gait_segments: TableDef<
         SessionGaitSegmentsRow,

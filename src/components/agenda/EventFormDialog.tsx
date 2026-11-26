@@ -26,6 +26,7 @@ import {
   type BlockDraft,
 } from '@/services/calendar/targetBlocks';
 import { TargetBlocksEditor } from './TargetBlocksEditor';
+import { createTemplate } from '@/data/templateRepository';
 import { changedEventFields } from '@/services/calendar/changedFields';
 import { notifyCalendarChange } from '@/services/notifications/notifyCalendarChange';
 import {
@@ -107,6 +108,24 @@ export function EventFormDialog({
     (initialValues.blocks ?? []).map(blockToDraft),
   );
   const [conflictNotice, setConflictNotice] = useState<string | null>(null);
+  const [templateSaved, setTemplateSaved] = useState(false);
+
+  async function saveAsTemplate(): Promise<void> {
+    const mine = current();
+    const targets = formTargets(mine);
+    try {
+      await createTemplate(getBrowserSupabase(), orgId, userId, {
+        name: mine.title.trim() || t('agenda.form.untitledTemplate'),
+        training_type: mine.trainingType,
+        duration_min: mine.durationMin,
+        targets,
+      });
+      setTemplateSaved(true);
+    } catch (err) {
+      log.error('agenda: save template failed', { error: err instanceof Error ? err.message : String(err) });
+      setError(t('agenda.form.errorSave'));
+    }
+  }
   const [scope, setScope] = useState<SaveScope>(
     occurrenceStart !== null ? 'occurrence' : 'series',
   );
@@ -531,6 +550,20 @@ export function EventFormDialog({
                 {t('agenda.blockEditor.title')}
               </p>
               <TargetBlocksEditor drafts={drafts} onChange={setDrafts} />
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-line pt-3">
+              {templateSaved ? (
+                <span role="status" className="text-[12px] text-success">{t('agenda.form.templateSaved')}</span>
+              ) : null}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={!blockConversion.valid}
+                onClick={() => void saveAsTemplate()}
+              >
+                {t('agenda.form.saveAsTemplate')}
+              </Button>
             </div>
           </div>
         ) : null}

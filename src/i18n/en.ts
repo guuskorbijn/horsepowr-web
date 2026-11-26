@@ -163,6 +163,9 @@ export const en = {
       deleteSeriesWarning: 'This removes the whole series from the agenda for everyone in the stable.',
     },
     form: {
+      saveAsTemplate: 'Save as template',
+      templateSaved: 'Saved as template',
+      untitledTemplate: 'Training template',
       intervalEveryLabel: 'Repeat every',
       intervalUnitLabel: 'Unit',
       intervalUnitDay: 'days',
@@ -504,6 +507,14 @@ export const en = {
     last4: 'Last 4 weeks',
     prev4: '4 weeks before',
     sessionsMinutes: '{sessions} sessions · {time}',
+  },
+  composer: {
+    label: 'Quick add',
+    placeholder: 'Type to plan… e.g. “farrier Bella tuesday 9:00” or “interval Milano every mon/thu 8:30”',
+    understood: 'Understood:',
+    repeats: 'repeats',
+    templates: 'Templates',
+    templateHint: 'Click to plan today, or drag onto a day',
   },
   home: {
     kpiToday: 'Planned today',

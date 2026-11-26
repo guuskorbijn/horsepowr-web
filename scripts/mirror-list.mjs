@@ -18,4 +18,5 @@ export const MIRROR = [
   ['src/services/calendar/conflictResolution.ts', 'src/services/calendar/conflictResolution.ts'],
   ['src/services/health/healthReminders.ts', 'src/services/health/healthReminders.ts'],
   ['src/services/calendar/blockTimeline.ts', 'src/services/calendar/blockTimeline.ts'],
+  ['src/services/calendar/quickAddParser.ts', 'src/services/calendar/quickAddParser.ts'],
 ];
