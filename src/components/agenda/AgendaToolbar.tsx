@@ -9,6 +9,7 @@ import { cn } from '@/lib/cn';
 import { agendaHref, type AgendaQuery } from '@/services/calendar/agendaQuery';
 import { AGENDA_VIEWS, shiftAgenda, type AgendaWindow } from '@/services/calendar/agendaService';
 import { formatDayKey, formatDayRange } from '@/services/format';
+import { CALENDAR_EVENT_TYPES, type CalendarEventType } from '@/types/calendar';
 
 interface Option {
   id: string;
@@ -125,6 +126,20 @@ export function AgendaToolbar({
             {people.map((person) => (
               <option key={person.id} value={person.id}>
                 {person.label}
+              </option>
+            ))}
+          </Select>
+        </label>
+        <label className="flex min-w-[12rem] flex-1 flex-col gap-1 sm:max-w-xs">
+          <span className="text-[12px] font-medium text-text-secondary">{t('agenda.filter.typeLabel')}</span>
+          <Select
+            value={query.type ?? ''}
+            onChange={(e) => go({ type: (e.target.value || null) as CalendarEventType | null })}
+          >
+            <option value="">{t('agenda.filter.allTypes')}</option>
+            {CALENDAR_EVENT_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {t(`agenda.type.${type}`)}
               </option>
             ))}
           </Select>

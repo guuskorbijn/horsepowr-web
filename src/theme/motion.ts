@@ -1,16 +1,17 @@
 /**
  * MIRRORED FROM THE MOBILE REPO — do not edit here.
- * Vendored from the mobile repo, commit cc497bd, do not edit here.
+ * Vendored from the mobile repo, commit 241eaaf, do not edit here.
  *
  * Source: horsepowr/src/constants/motion.ts
  *
- * One token source for both products, which is the whole point: the pulse, the
- * entrances and the shimmer run on the SAME numbers in the app and in the
- * browser instead of two sets that drift apart. See scripts/check-mirror.mjs.
+ * CLAUDE.md forbids importing the RN repo as a build dependency, and Vercel
+ * builds this repo alone, so shared domain logic is copied rather than linked.
+ * The copy is deliberate and checked: `npm run check:mirror` fails when this
+ * file and its source have drifted, so the duplication is visible instead of
+ * silent. Fix a bug in the mobile repo and re-run the mirror; never patch here.
  *
- * Durations are shared; the CURVES are resolved per platform (RN `Easing`
- * there, `cubic-bezier` here) because that is the one place the platforms
- * genuinely differ.
+ * These modules are PURE on purpose — that is what makes them safe to mirror.
+ * Anything touching Supabase, storage or React stays on its own side.
  */
 
 /**

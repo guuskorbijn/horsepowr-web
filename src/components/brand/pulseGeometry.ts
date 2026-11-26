@@ -1,12 +1,17 @@
 /**
  * MIRRORED FROM THE MOBILE REPO — do not edit here.
- * Vendored from the mobile repo, commit cc497bd, do not edit here.
+ * Vendored from the mobile repo, commit 241eaaf, do not edit here.
  *
  * Source: horsepowr/src/components/loading/pulseGeometry.ts
  *
- * See scripts/check-mirror.mjs. The same points drive the loader on both
- * products, so the brand's pulse is literally the same shape in the app and in
- * the browser rather than two drawings that resemble each other.
+ * CLAUDE.md forbids importing the RN repo as a build dependency, and Vercel
+ * builds this repo alone, so shared domain logic is copied rather than linked.
+ * The copy is deliberate and checked: `npm run check:mirror` fails when this
+ * file and its source have drifted, so the duplication is visible instead of
+ * silent. Fix a bug in the mobile repo and re-run the mirror; never patch here.
+ *
+ * These modules are PURE on purpose — that is what makes them safe to mirror.
+ * Anything touching Supabase, storage or React stays on its own side.
  */
 
 /**

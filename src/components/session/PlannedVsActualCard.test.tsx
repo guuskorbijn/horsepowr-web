@@ -27,6 +27,7 @@ const compared: PlannedComparison = {
       targetZones: ['z3', 'z4'],
     },
     hrOmittedReason: null,
+  blocks: [],
     coverage: {
       coveredMs: 1_000_000,
       durationMs: 48 * 60_000,

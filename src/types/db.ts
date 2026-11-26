@@ -178,6 +178,7 @@ export type CalendarEventRow = {
   recurrence_rule: string | null;
   created_at: string;
   updated_at: string;
+  updated_by?: string | null;
   deleted_at: string | null;
 }
 

@@ -76,9 +76,9 @@ export function PlannedVsActualCard({ planned, maxHr }: { planned: PlannedCompar
     );
   }
 
-  const { duration, hr, hrOmittedReason, coverage } = planned.comparison;
+  const { duration, hr, hrOmittedReason, coverage, blocks } = planned.comparison;
   const notes: string[] = [];
-  if (hrOmittedReason === 'no-target') notes.push(t('plannedVsActual.noTarget'));
+  if (hrOmittedReason === 'no-target' && blocks.length === 0) notes.push(t('plannedVsActual.noTarget'));
   if (hrOmittedReason === 'no-data') notes.push(t('plannedVsActual.noHrData'));
   if (hr !== null && hr.insidePct === null) notes.push(t('plannedVsActual.notEnoughHrData'));
   if (hr !== null && hr.insidePct !== null) {
@@ -145,6 +145,47 @@ export function PlannedVsActualCard({ planned, maxHr }: { planned: PlannedCompar
             ) : null}
           </tbody>
         </table>
+        {blocks.length > 0 ? (
+          <div className="space-y-2 border-t border-line pt-3">
+            <p className="text-[13px] font-medium text-text-primary">{t('plannedVsActual.blocksTitle')}</p>
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr>
+                  <td />
+                  <th scope="col" className="pb-1 text-left text-[12px] font-medium text-text-tertiary">
+                    {t('plannedVsActual.blockPlanned')}
+                  </th>
+                  <th scope="col" className="pb-1 text-left text-[12px] font-medium text-text-tertiary">
+                    {t('plannedVsActual.blockMeasured')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {blocks.map((block) => (
+                  <tr key={block.index} className="border-t border-line align-top">
+                    <th scope="row" className="py-1.5 pr-3 text-left font-normal text-text-secondary">
+                      <span className="text-text-primary">
+                        {`${block.index + 1}. ${block.label ?? t(block.kind === 'interval' ? 'agenda.blockEditor.interval' : 'agenda.blockEditor.steady')}`}
+                      </span>
+                      {` · ${formatHrRange(block.targetMinBpm, block.targetMaxBpm) ?? ''}`}
+                      {block.plannedBouts !== null ? (
+                        <span className="block text-[12px] text-text-tertiary">
+                          {t('plannedVsActual.boutsLine')
+                            .replace('{measured}', String(block.measuredBouts ?? 0))
+                            .replace('{planned}', String(block.plannedBouts))
+                            .replace('{longest}', block.longestBoutMs === null ? '—' : formatDuration(block.longestBoutMs))}
+                        </span>
+                      ) : null}
+                    </th>
+                    <td className="py-1.5 tabular-nums text-text-secondary">{formatDuration(block.plannedTargetMs)}</td>
+                    <td className="py-1.5 tabular-nums text-text-primary">{formatDuration(block.measuredInsideMs)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="text-[12px] text-text-tertiary">{t('plannedVsActual.blocksNote')}</p>
+          </div>
+        ) : null}
         {notes.map((note) => (
           <p key={note} className="text-[13px] text-text-secondary">
             {note}

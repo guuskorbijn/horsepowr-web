@@ -8,18 +8,32 @@ import { Select, Textarea, Toggle } from '@/components/ui/FormControls';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import {
   createEvent,
-  updateEvent,
+  getEvent,
+  updateEventColumns,
   upsertOverride,
 } from '@/data/calendarRepository';
 import {
+  eventToFormValues,
   formEndToUtc,
   formStartToUtc,
   formTargets,
   formValuesToWriteInput,
 } from '@/services/calendar/eventFormMapper';
+import { mergeFormEdits } from '@/services/calendar/formConflict';
+import {
+  blockToDraft,
+  draftsToBlocks,
+  type BlockDraft,
+} from '@/services/calendar/targetBlocks';
+import { TargetBlocksEditor } from './TargetBlocksEditor';
 import { changedEventFields } from '@/services/calendar/changedFields';
 import { notifyCalendarChange } from '@/services/notifications/notifyCalendarChange';
-import { RECURRENCE_PRESETS } from '@/services/calendar/recurrenceService';
+import {
+  RECURRENCE_INTERVAL_MAX,
+  RECURRENCE_INTERVAL_MIN,
+  RECURRENCE_PRESETS,
+  type RecurrenceIntervalUnit,
+} from '@/services/calendar/recurrenceService';
 import { KNOWN_TIME_ZONES } from '@/services/time/timezone';
 import { useTranslation } from '@/i18n/LocaleProvider';
 import { log } from '@/lib/log';
@@ -86,6 +100,13 @@ export function EventFormDialog({
 }) {
   const { t } = useTranslation();
   const [values, setValues] = useState<CalendarEventFormValues>(initialValues);
+  // What the dialog last saw on the server — the base of the three-way merge.
+  // Moves forward when a save discovers someone else's change.
+  const [base, setBase] = useState<CalendarEventFormValues>(initialValues);
+  const [drafts, setDrafts] = useState<BlockDraft[]>(
+    (initialValues.blocks ?? []).map(blockToDraft),
+  );
+  const [conflictNotice, setConflictNotice] = useState<string | null>(null);
   const [scope, setScope] = useState<SaveScope>(
     occurrenceStart !== null ? 'occurrence' : 'series',
   );
@@ -98,6 +119,61 @@ export function EventFormDialog({
   ): void => setValues((prev) => ({ ...prev, [key]: value }));
 
   const isTraining = values.type === 'training';
+  const blockConversion = draftsToBlocks(drafts);
+  const intervalInvalid =
+    values.recurrencePreset === 'interval' &&
+    !(
+      Number.isInteger(values.recurrenceInterval.every) &&
+      values.recurrenceInterval.every >= RECURRENCE_INTERVAL_MIN &&
+      values.recurrenceInterval.every <= RECURRENCE_INTERVAL_MAX
+    );
+  const invalid = (isTraining && !blockConversion.valid) || intervalInvalid;
+
+  /** The form values with the edited blocks folded in. */
+  const current = (): CalendarEventFormValues => ({
+    ...values,
+    blocks: isTraining && blockConversion.blocks.length > 0 ? blockConversion.blocks : null,
+  });
+
+  /**
+   * Saves the whole series without overwriting anyone: re-reads the row,
+   * merges per column against what this dialog opened on, writes only this
+   * user's columns guarded on `updated_at`, and stops to show the other
+   * person's value when both changed the same thing.
+   */
+  async function saveSeries(id: string, mine: CalendarEventFormValues): Promise<string[] | null> {
+    const supa = getBrowserSupabase();
+    for (let round = 0; round < 3; round++) {
+      const server = await getEvent(supa, id);
+      if (server === null) throw new Error(t('agenda.conflict.gone'));
+      const theirs = eventToFormValues(server);
+      const merge = mergeFormEdits(base, mine, theirs);
+
+      if (merge.conflicts.length > 0) {
+        const who =
+          assignees.find((p) => p.id === server.updated_by)?.name ??
+          assignees.find((p) => p.id === server.updated_by)?.email ??
+          t('agenda.conflict.someone');
+        setBase(theirs);
+        setValues(merge.merged);
+        setDrafts((merge.merged.blocks ?? []).map(blockToDraft));
+        setConflictNotice(
+          t('agenda.conflict.body')
+            .replace('{who}', who)
+            .replace('{fields}', merge.conflicts.map((c) => t(`agenda.conflict.fields.${c}`)).join(', ')),
+        );
+        return null;
+      }
+      if (merge.write.length === 0) return [];
+
+      const input = formValuesToWriteInput(mine);
+      if (input === null) throw new Error(t('agenda.form.errorInvalidDate'));
+      const saved = await updateEventColumns(supa, id, input, merge.write, server.updated_at);
+      if (saved !== null) return merge.write;
+      // The row moved between our read and our write: read again.
+    }
+    throw new Error(t('agenda.conflict.busy'));
+  }
   const asksScope = eventId !== null && isSeries && occurrenceStart !== null;
 
   /**
@@ -117,23 +193,26 @@ export function EventFormDialog({
       notes: values.notes,
       assignee_id: values.assigneeId,
       status: null,
-      targets: formTargets(values),
+      targets: formTargets(current()),
     });
   }
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault();
+    if (invalid) return;
     setBusy(true);
     setError(null);
+    setConflictNotice(null);
+    const mine = current();
     try {
       // What changed is computed BEFORE the write, against the values the
       // form opened with, because afterwards there is nothing left to compare.
       const changed =
         eventId === null
-          ? values.assigneeId !== null
+          ? mine.assigneeId !== null
             ? ['assignee_id']
             : []
-          : changedEventFields(initialValues, values);
+          : changedEventFields(base, mine);
 
       if (eventId !== null && scope === 'occurrence' && occurrenceStart !== null) {
         await saveOccurrence(eventId, occurrenceStart);
@@ -143,20 +222,23 @@ export function EventFormDialog({
           occurrenceStart,
           previousAssigneeId: initialValues.assigneeId,
         });
-      } else {
-        const input = formValuesToWriteInput(values);
+      } else if (eventId === null) {
+        const input = formValuesToWriteInput(mine);
         if (input === null) throw new Error(t('agenda.form.errorInvalidDate'));
-        const supa = getBrowserSupabase();
-        const saved =
-          eventId === null
-            ? await createEvent(supa, input, { orgId, userId })
-            : await updateEvent(supa, eventId, input);
-        await notifyCalendarChange({
-          eventId: saved.id,
-          changedFields: changed,
-          previousAssigneeId: eventId === null ? null : initialValues.assigneeId,
-          previousStartsAt: eventId === null ? null : formStartToUtc(initialValues),
-        });
+        const saved = await createEvent(getBrowserSupabase(), input, { orgId, userId });
+        await notifyCalendarChange({ eventId: saved.id, changedFields: changed });
+      } else {
+        const written = await saveSeries(eventId, mine);
+        // A conflict: the dialog stays open showing the other person's value.
+        if (written === null) return;
+        if (written.length > 0) {
+          await notifyCalendarChange({
+            eventId,
+            changedFields: written,
+            previousAssigneeId: base.assigneeId,
+            previousStartsAt: formStartToUtc(base),
+          });
+        }
       }
       onSaved();
       onClose();
@@ -340,6 +422,45 @@ export function EventFormDialog({
           </Field>
         </div>
 
+        {values.recurrencePreset === 'interval' && scope !== 'occurrence' ? (
+          <div className="grid grid-cols-2 gap-4 sm:max-w-sm">
+            <Field
+              label={t('agenda.form.intervalEveryLabel')}
+              htmlFor="event-interval-every"
+              hint={intervalInvalid ? t('agenda.form.errorInterval') : undefined}
+            >
+              <Input
+                id="event-interval-every"
+                type="number"
+                min={RECURRENCE_INTERVAL_MIN}
+                max={RECURRENCE_INTERVAL_MAX}
+                value={Number.isNaN(values.recurrenceInterval.every) ? '' : values.recurrenceInterval.every}
+                onChange={(e) =>
+                  set('recurrenceInterval', {
+                    ...values.recurrenceInterval,
+                    every: e.target.value === '' ? Number.NaN : Number(e.target.value),
+                  })
+                }
+              />
+            </Field>
+            <Field label={t('agenda.form.intervalUnitLabel')} htmlFor="event-interval-unit">
+              <Select
+                id="event-interval-unit"
+                value={values.recurrenceInterval.unit}
+                onChange={(e) =>
+                  set('recurrenceInterval', {
+                    ...values.recurrenceInterval,
+                    unit: e.target.value as RecurrenceIntervalUnit,
+                  })
+                }
+              >
+                <option value="day">{t('agenda.form.intervalUnitDay')}</option>
+                <option value="week">{t('agenda.form.intervalUnitWeek')}</option>
+              </Select>
+            </Field>
+          </div>
+        ) : null}
+
         {isTraining ? (
           <div className="space-y-4 rounded-lg border border-line bg-surface-muted p-4">
             <p className="text-[13px] font-medium text-text-primary">
@@ -405,6 +526,12 @@ export function EventFormDialog({
                 />
               </Field>
             </div>
+            <div className="space-y-2 border-t border-line pt-4">
+              <p className="text-[13px] font-medium text-text-primary">
+                {t('agenda.blockEditor.title')}
+              </p>
+              <TargetBlocksEditor drafts={drafts} onChange={setDrafts} />
+            </div>
           </div>
         ) : null}
 
@@ -442,6 +569,16 @@ export function EventFormDialog({
           </fieldset>
         ) : null}
 
+        {conflictNotice ? (
+          <div
+            role="alert"
+            className="rounded-md border-l-4 border-[var(--pill-warning-text)] bg-[var(--pill-warning-bg)] px-3 py-2 text-[13px] text-[var(--pill-warning-text)]"
+          >
+            <p className="font-medium">{t('agenda.conflict.title')}</p>
+            <p>{conflictNotice}</p>
+          </div>
+        ) : null}
+
         {error ? (
           <p className="rounded-md bg-[var(--pill-warning-bg)] px-3 py-2 text-[13px] text-[var(--pill-warning-text)]">
             {error}
@@ -452,7 +589,7 @@ export function EventFormDialog({
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>
             {t('common.cancel')}
           </Button>
-          <Button type="submit" size="sm" disabled={busy || values.title.trim() === ''}>
+          <Button type="submit" size="sm" disabled={busy || values.title.trim() === '' || invalid}>
             {busy ? t('common.saving') : t('common.save')}
           </Button>
         </div>

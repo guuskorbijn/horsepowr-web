@@ -59,6 +59,7 @@ export const calendarEventRowSchema = z.object({
   recurrence_rule: z.string().nullable(),
   created_at: instant,
   updated_at: instant,
+  updated_by: z.string().nullable().optional(),
   deleted_at: instant.nullable(),
 });
 

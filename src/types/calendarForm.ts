@@ -1,4 +1,4 @@
-import type { RecurrencePreset } from '@/services/calendar/recurrenceService';
+import type { RecurrenceInterval, RecurrencePreset } from '@/services/calendar/recurrenceService';
 import type { TargetBlock } from '@/services/calendar/trainingTargets';
 import type { CalendarEventType } from '@/types/calendar';
 import type { TrainingType } from '@/types/db';
@@ -33,11 +33,13 @@ export interface CalendarEventFormValues {
   recurrencePreset: RecurrencePreset;
   /** Raw rule, kept when the stored pattern is not one of the presets. */
   customRecurrenceRule: string | null;
+  /** Used when `recurrencePreset` is 'interval': every N days or weeks. */
+  recurrenceInterval: RecurrenceInterval;
   /** Which kind of training is planned. Training only. */
   trainingType: TrainingType | null;
   targetHrMinBpm: number | null;
   targetHrMaxBpm: number | null;
   targetDurationMin: number | null;
-  /** Round-tripped untouched; there is no block editor on either platform. */
+  /** Training structure (steady parts and intervals); null or empty = none. */
   blocks: TargetBlock[] | null;
 }

@@ -34,6 +34,7 @@ async function load(query: AgendaQuery): Promise<LoadResult> {
       filters: {
         ...(query.horseId !== null ? { horseId: query.horseId } : {}),
         ...(query.assigneeId !== null ? { assigneeId: query.assigneeId } : {}),
+        ...(query.type !== null ? { types: [query.type] } : {}),
       },
       readerTimeZone: reader.timeZone,
       nowIso: new Date().toISOString(),

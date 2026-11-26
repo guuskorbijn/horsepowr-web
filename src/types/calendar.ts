@@ -1,6 +1,6 @@
 /**
  * MIRRORED FROM THE MOBILE REPO — do not edit here.
- * Vendored from the mobile repo, commit cc497bd, do not edit here.
+ * Vendored from the mobile repo, commit 241eaaf, do not edit here.
  *
  * Source: horsepowr/src/types/calendar.ts
  *
@@ -89,6 +89,8 @@ export interface CalendarEvent {
   created_at: string;
   /** Server-set via trigger. The conflict-resolution clock. */
   updated_at: string;
+  /** Who made the latest change (server-set by trigger). See the override type. */
+  updated_by?: string | null;
   /** Soft-delete tombstone. Monotonic: the DB refuses to clear it. */
   deleted_at: string | null;
 }
@@ -112,6 +114,12 @@ export interface CalendarEventOverride {
   targets: TrainingTargets | null;
   created_at: string;
   updated_at: string;
+  /**
+   * Who made the latest change (server-set by trigger). Optional because a
+   * locally created row has not been stamped yet; used to name the other
+   * person in a conflict notice.
+   */
+  updated_by?: string | null;
   deleted_at: string | null;
 }
 
