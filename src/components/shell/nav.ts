@@ -9,6 +9,7 @@ import {
   Sparkles,
   Settings,
   Contact,
+  Trophy,
 } from 'lucide-react';
 import { HorseIcon } from '@/components/icons/HorseIcon';
 
@@ -26,6 +27,7 @@ export interface NavItem {
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/', labelKey: 'nav.commandCenter', icon: LayoutDashboard },
   { href: '/agenda', labelKey: 'nav.agenda', icon: CalendarDays },
+  { href: '/competitions', labelKey: 'nav.competitions', icon: Trophy },
   { href: '/stable', labelKey: 'nav.stable', icon: LayoutGrid },
   { href: '/sessions', labelKey: 'nav.sessions', icon: Activity },
   { href: '/compare', labelKey: 'nav.compare', icon: GitCompareArrows },

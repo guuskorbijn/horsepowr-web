@@ -17,6 +17,7 @@ export const nl = {
     somethingWrong: 'Er is iets misgegaan',
   },
   nav: {
+    competitions: 'Wedstrijden',
     contacts: 'Contacten',
     agenda: 'Agenda',
     stable: 'Stalweek',
@@ -511,6 +512,27 @@ export const nl = {
     templates: 'Sjablonen',
     templateHint: 'Klik om vandaag te plannen, of sleep naar een dag',
   },
+  competitions: {
+    title: 'Wedstrijden',
+    description: 'Komende wedstrijden: welk paard met welke ruiter, en wat er nog klaar moet staan.',
+    entries: '{n} starts',
+    ready: '{done}/{total} klaar',
+    noRider: 'nog geen ruiter',
+    remove: 'Regel verwijderen',
+    addDefault: 'Standaard checklist toevoegen',
+    addLine: 'Regel toevoegen…',
+    emptyTitle: 'Geen wedstrijden gepland',
+    emptyDescription: 'Plan een wedstrijd in de agenda; die verschijnt hier met een checklist.',
+    errorSave: 'Opslaan lukte niet. Probeer opnieuw.',
+    errorLoad: 'De wedstrijden konden niet worden geladen.',
+    default: {
+      entry: 'Inschrijving bevestigd',
+      passport: 'Paspoort mee',
+      vaccinations: 'Vaccinaties geldig',
+      transport: 'Vervoer geregeld',
+      number: 'Startnummer opgehaald',
+    },
+  },
   home: {
     kpiToday: 'Vandaag gepland',
     kpiDone: 'Vandaag gedaan',
@@ -531,6 +553,7 @@ export const nl = {
     legend: 'Rand = gepland · gevuld = gedaan',
   },
   live: {
+    checklistTicked: '{who} vinkte “{label}” af',
     connected: 'Live',
     offline: 'Offline',
     connectedHint: 'Wijzigingen van je team verschijnen hier meteen.',

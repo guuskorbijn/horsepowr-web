@@ -22,6 +22,7 @@ export const en = {
     somethingWrong: 'Something went wrong',
   },
   nav: {
+    competitions: 'Competitions',
     contacts: 'Contacts',
     agenda: 'Agenda',
     stable: 'Stable week',
@@ -516,6 +517,27 @@ export const en = {
     templates: 'Templates',
     templateHint: 'Click to plan today, or drag onto a day',
   },
+  competitions: {
+    title: 'Competitions',
+    description: 'Upcoming shows: which horse goes with which rider, and what still has to be ready.',
+    entries: '{n} entries',
+    ready: '{done}/{total} ready',
+    noRider: 'no rider yet',
+    remove: 'Remove line',
+    addDefault: 'Add standard checklist',
+    addLine: 'Add a line…',
+    emptyTitle: 'No competitions planned',
+    emptyDescription: 'Plan a competition in the agenda; it appears here with its checklist.',
+    errorSave: 'Could not save. Try again.',
+    errorLoad: 'Could not load the competitions.',
+    default: {
+      entry: 'Entry confirmed',
+      passport: 'Passport packed',
+      vaccinations: 'Vaccinations valid',
+      transport: 'Transport arranged',
+      number: 'Start number collected',
+    },
+  },
   home: {
     kpiToday: 'Planned today',
     kpiDone: 'Done today',
@@ -536,6 +558,7 @@ export const en = {
     legend: 'Outline = planned · filled = done',
   },
   live: {
+    checklistTicked: '{who} ticked “{label}”',
     connected: 'Live',
     offline: 'Offline',
     connectedHint: 'Changes by your team appear here as they happen.',

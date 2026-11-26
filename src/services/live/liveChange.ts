@@ -12,7 +12,8 @@ export type LiveTable =
   | 'calendar_event_overrides'
   | 'sessions'
   | 'polar_inbox'
-  | 'horse_health_records';
+  | 'horse_health_records'
+  | 'event_checklist_items';
 
 export interface LiveChangeInput {
   table: LiveTable;
@@ -60,5 +61,7 @@ export function describeLiveChange(
       return change.kind === 'INSERT' ? t('live.polarArrived') : null;
     case 'horse_health_records':
       return change.kind === 'INSERT' ? fill('live.healthAdded') : null;
+    case 'event_checklist_items':
+      return change.row.done === true ? t('live.checklistTicked').replace('{who}', who).replace('{label}', str(change.row.label) ?? '') : null;
   }
 }

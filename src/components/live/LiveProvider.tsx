@@ -27,6 +27,7 @@ const TABLES: readonly LiveTable[] = [
   'sessions',
   'polar_inbox',
   'horse_health_records',
+  'event_checklist_items',
 ];
 const REFRESH_DEBOUNCE_MS = 350;
 const RECENT_MS = 6000;
