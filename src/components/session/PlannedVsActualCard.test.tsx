@@ -8,6 +8,7 @@ afterEach(cleanup);
 
 const compared: PlannedComparison = {
   kind: 'compared',
+    blocks: [],
   plannedEventId: 'evt-1',
   targetBand: { minBpm: 150, maxBpm: 170 },
   comparison: {

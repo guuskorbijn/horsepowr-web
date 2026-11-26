@@ -488,6 +488,14 @@ export const en = {
     horseEmpty: 'No contacts linked to this horse.',
     manage: 'Manage',
   },
+  session: {
+    planWork: 'Interval {n}/{total}',
+    planRecovery: 'Recovery',
+    storyAvg: 'avg {bpm} bpm',
+    storyPeak: 'peak {bpm}',
+    storyBouts: '{measured} of {planned} intervals at {range}',
+    storyBoutsNoRange: '{measured} of {planned} intervals',
+  },
   home: {
     kpiToday: 'Planned today',
     kpiDone: 'Done today',

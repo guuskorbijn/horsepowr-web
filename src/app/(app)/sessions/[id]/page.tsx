@@ -17,6 +17,7 @@ import { SessionSummaryCard } from '@/components/session/SessionSummaryCard';
 import { RecordingQualityCard } from '@/components/session/RecordingQualityCard';
 import { PlannedVsActualCard } from '@/components/session/PlannedVsActualCard';
 import { getServerT } from '@/i18n/server';
+import { sessionStory, storyText } from '@/services/sessionStory';
 import { log } from '@/lib/log';
 import { ZoneDistribution } from '@/components/session/ZoneDistribution';
 import { AnnotationForm } from '@/components/session/AnnotationForm';
@@ -126,6 +127,10 @@ export default async function SessionDetailPage({
       />
 
       <div className="space-y-6">
+        <p className="hp-fade-in font-display text-[20px] font-medium leading-snug tracking-tight text-text-primary sm:text-[22px]">
+          {storyText(sessionStory(view.metrics, view.planned), t)}
+        </p>
+
         <SessionMetricTiles metrics={view.metrics} />
 
         <SessionSummaryCard summary={view.summary} />
@@ -145,6 +150,9 @@ export default async function SessionDetailPage({
               ? { ...view.planned.targetBand, label: t('plannedVsActual.targetBand') }
               : undefined
           }
+          {...(view.planned.kind === 'compared' && view.planned.blocks.length > 0
+            ? { plan: { blocks: view.planned.blocks, startMs: Date.parse(session.started_at) } }
+            : {})}
         />
 
         <EffortsPanel efforts={view.efforts} hasGps={view.route.length > 1} />

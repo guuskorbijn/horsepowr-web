@@ -1,3 +1,4 @@
+import type { TargetBlock } from '@/services/calendar/trainingTargets';
 import {
   comparePlannedVsActual,
   type PlannedVsActual,
@@ -30,6 +31,8 @@ export type PlannedComparison =
       comparison: PlannedVsActual;
       /** The target band for the HR chart; null sides are unbounded. */
       targetBand: { minBpm: number | null; maxBpm: number | null } | null;
+      /** The planned blocks as they stood at the start, for the plan track. */
+      blocks: TargetBlock[];
     };
 
 export function buildPlannedComparison(
@@ -62,5 +65,6 @@ export function buildPlannedComparison(
     plannedEventId,
     comparison,
     targetBand: minBpm === null && maxBpm === null ? null : { minBpm, maxBpm },
+    blocks: snapshot.targets?.blocks ?? [],
   };
 }

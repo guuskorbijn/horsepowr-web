@@ -483,6 +483,14 @@ export const nl = {
     horseEmpty: 'Geen contacten gekoppeld aan dit paard.',
     manage: 'Beheren',
   },
+  session: {
+    planWork: 'Interval {n}/{total}',
+    planRecovery: 'Herstel',
+    storyAvg: 'gem. {bpm} bpm',
+    storyPeak: 'piek {bpm}',
+    storyBouts: '{measured} van {planned} intervallen op {range}',
+    storyBoutsNoRange: '{measured} van {planned} intervallen',
+  },
   home: {
     kpiToday: 'Vandaag gepland',
     kpiDone: 'Vandaag gedaan',
