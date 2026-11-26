@@ -57,7 +57,8 @@ export function parseAgendaQuery(params: Readonly<Record<string, SearchParamValu
     horseId: asId(first(params.horse)),
     assigneeId: asId(first(params.assignee)),
     type: asType(first(params.type)),
-    layout: first(params.layout) === 'time' ? 'time' : 'list',
+    // The hour axis is the agenda's default; the card list is the alternative.
+    layout: first(params.layout) === 'list' ? 'list' : 'time',
   };
 }
 
@@ -69,7 +70,7 @@ export function agendaHref(basePath: string, query: AgendaQuery): string {
   if (query.horseId !== null) params.set('horse', query.horseId);
   if (query.assigneeId !== null) params.set('assignee', query.assigneeId);
   if (query.type !== null) params.set('type', query.type);
-  if (query.layout === 'time') params.set('layout', 'time');
+  if (query.layout === 'list') params.set('layout', 'list');
   const search = params.toString();
   return search === '' ? basePath : `${basePath}?${search}`;
 }

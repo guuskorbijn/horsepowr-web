@@ -70,9 +70,9 @@ function renderBoard(
 }
 
 describe('AgendaBoard', () => {
-  it('shows a training target as bpm with its Z label and duration', () => {
+  it('keeps the card calm: horse shown, the HR target only in the detail', () => {
     renderBoard([event({})], false);
-    expect(screen.getByText('150–170 bpm · Z2–Z3 · 45 min')).toBeDefined();
+    expect(screen.queryByText(/150–170 bpm/)).toBeNull();
     expect(screen.getByText('Luna')).toBeDefined();
   });
 

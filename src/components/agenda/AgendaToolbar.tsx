@@ -97,7 +97,7 @@ export function AgendaToolbar({
 
         <div className="flex items-center gap-2">
         <div role="group" aria-label={t('agenda.layoutLabel')} className="flex rounded-md border border-line p-0.5">
-          {(['list', 'time'] as const).map((layout) => (
+          {(['time', 'list'] as const).map((layout) => (
             <Link
               key={layout}
               href={agendaHref(basePath, { ...query, layout })}

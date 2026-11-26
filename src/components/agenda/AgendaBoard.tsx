@@ -7,8 +7,6 @@ import { EmptyState } from '@/components/ui/states';
 import { Button } from '@/components/ui/Button';
 import { useTranslation } from '@/i18n/LocaleProvider';
 import {
-  formatHrRange,
-  formatZoneSpan,
   type Agenda,
   type AgendaItem,
 } from '@/services/calendar/agendaService';
@@ -44,7 +42,6 @@ import { OccurrenceDetailDialog } from '@/components/agenda/OccurrenceDetailDial
 import type { CalendarEventFormValues } from '@/types/calendarForm';
 import type {
   CalendarEvent,
-  CalendarEventType,
   EventOccurrence,
 } from '@/types/calendar';
 import type { HorseRow, LocationRow, ProfileRow } from '@/types/db';
@@ -80,25 +77,6 @@ function weekdayLabel(dayKey: string, long: boolean): string {
     weekday: long ? 'long' : 'short',
     timeZone: 'UTC',
   });
-}
-
-function TargetLine({ item }: { item: AgendaItem }) {
-  const { t } = useTranslation();
-  const target = item.target;
-  if (target === null) return null;
-  const hr = formatHrRange(target.hrMinBpm, target.hrMaxBpm);
-  const parts: string[] = [];
-  // An HR is never printed without its zone label (DESIGN_SYSTEM §11).
-  if (hr !== null) parts.push(`${hr} · ${formatZoneSpan(target.zones)}`);
-  if (target.durationMin !== null) parts.push(`${target.durationMin} min`);
-  if (target.blockCount > 0) parts.push(`${target.blockCount} ${t('agenda.blocks')}`);
-  if (parts.length === 0) return null;
-  return (
-    <p className="mt-1 text-[12px] tabular-nums text-text-secondary">
-      <span className="sr-only">{t('agenda.detail.targetLabel')}: </span>
-      {parts.join(' · ')}
-    </p>
-  );
 }
 
 function ItemCard({
@@ -183,7 +161,6 @@ function ItemCard({
         {occurrence.title}
       </p>
       <p className="text-[12px] text-text-secondary">{horse}</p>
-      {!cancelled ? <TargetLine item={item} /> : null}
       {cancelled ? (
         <p className="mt-1 text-[11px] text-danger">{t('agenda.cancelled')}</p>
       ) : done ? (

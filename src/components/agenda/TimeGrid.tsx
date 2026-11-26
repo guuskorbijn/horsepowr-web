@@ -225,7 +225,6 @@ export function TimeGrid({
                         background: `color-mix(in srgb, ${TYPE_ACCENT[o.type]} 14%, var(--color-surface))`,
                       }}
                     >
-                      <span className="block truncate text-[11px] tabular-nums text-text-secondary">{p.item.readerTime}</span>
                       <span className="block truncate text-[12px] font-medium leading-tight text-text-primary">{o.title}</span>
                       {o.horse_id ? <span className="block truncate text-[11px] text-text-secondary">{horseNames[o.horse_id]}</span> : null}
                     </button>
