@@ -27,6 +27,8 @@ import { notifyCalendarChange } from '@/services/notifications/notifyCalendarCha
 import { log } from '@/lib/log';
 import { cn } from '@/lib/cn';
 import { FadeIn } from '@/components/motion/FadeIn';
+import { useFlip } from '@/lib/useFlip';
+import { useLive } from '@/components/live/LiveProvider';
 import { EventFormDialog } from '@/components/agenda/EventFormDialog';
 import { OccurrenceDetailDialog } from '@/components/agenda/OccurrenceDetailDialog';
 import type { CalendarEventFormValues } from '@/types/calendarForm';
@@ -113,7 +115,9 @@ function ItemCard({
   drag: DragApi;
 }) {
   const { t } = useTranslation();
+  const { recent } = useLive();
   const { occurrence, cancelled, done } = item;
+  const justChanged = recent.has(occurrence.event_id);
   const horse =
     occurrence.horse_id === null
       ? t('agenda.wholeStable')
@@ -135,6 +139,7 @@ function ItemCard({
         drag.onDragStart(occurrence, dayKey);
       }}
       aria-busy={drag.pendingKey === occurrence.key || undefined}
+      data-flip-key={occurrence.key}
       onDragEnd={drag.onDragEnd}
       style={{ borderLeftColor: TYPE_ACCENT[occurrence.type] }}
       className={cn(
@@ -146,6 +151,7 @@ function ItemCard({
         cancelled && 'opacity-60',
         drag.draggingKey === occurrence.key && 'opacity-40',
         drag.pendingKey === occurrence.key && 'animate-pulse border-primary/50',
+        justChanged && 'hp-just-changed',
       )}
     >
       <div className="flex flex-wrap items-baseline gap-x-2">
@@ -388,6 +394,8 @@ export function AgendaBoard({
           : d,
     );
   }, [agenda.days, pendingMove]);
+  const gridRef = useRef<HTMLDivElement>(null);
+  useFlip(gridRef);
   const overRef = useRef<string | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
 
@@ -606,6 +614,7 @@ export function AgendaBoard({
             'grid grid-cols-1 gap-4',
             span.view === 'week' && 'sm:grid-cols-2 lg:grid-cols-7',
           )}
+          ref={gridRef}
           onDragLeave={(e) => {
             const next = e.relatedTarget;
             if (!(next instanceof Node) || !e.currentTarget.contains(next)) overDay(null);
