@@ -9,6 +9,7 @@ import type { UserRole } from '@/types/db';
 import { cn } from '@/lib/cn';
 
 export interface SessionUser {
+  id: string;
   name: string;
   email: string;
   role: UserRole;

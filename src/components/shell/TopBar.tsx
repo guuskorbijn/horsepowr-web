@@ -2,6 +2,7 @@ import { LocationSwitcher } from '@/components/shell/LocationSwitcher';
 import { MobileNav } from '@/components/shell/MobileNav';
 import { ThemeToggle } from '@/components/shell/ThemeToggle';
 import { LiveBadge } from '@/components/live/LiveProvider';
+import { NotificationInbox } from '@/components/shell/NotificationInbox';
 import { UserMenu, type SessionUser } from '@/components/shell/UserMenu';
 
 export function TopBar({ user }: { user: SessionUser }) {
@@ -13,6 +14,7 @@ export function TopBar({ user }: { user: SessionUser }) {
       </div>
       <div className="flex items-center gap-1">
         <LiveBadge />
+        <NotificationInbox userId={user.id} />
         <ThemeToggle />
         <UserMenu user={user} />
       </div>

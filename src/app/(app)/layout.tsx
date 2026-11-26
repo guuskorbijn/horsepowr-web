@@ -31,6 +31,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
         })
     : [];
   const user = {
+    id: ctx.userId,
     name: ctx.profile.name ?? ctx.email,
     email: ctx.email,
     role: ctx.role,

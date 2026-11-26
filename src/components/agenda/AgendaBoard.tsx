@@ -559,6 +559,13 @@ export function AgendaBoard({
     setForm({ values: fill(baseValues(dayKey)), eventId: null, occurrenceStart: null, isSeries: false });
   const todayKey = agenda.days.find((d) => d.isToday)?.dayKey ?? span.startDayKey;
 
+  // Arriving from ⌘K "Plan something…": straight into the quick-add field.
+  useEffect(() => {
+    if (canEdit && new URLSearchParams(window.location.search).get('compose') === '1') {
+      document.getElementById('agenda-quick-add')?.focus();
+    }
+  }, [canEdit]);
+
   // Shortcuts: "/" jumps into quick add, "n" opens a new item for today.
   useEffect(() => {
     if (!canEdit) return;

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -45,6 +46,20 @@ export function AgendaToolbar({
 
   const step = (delta: number): string =>
     agendaHref(basePath, { ...query, date: shiftAgenda(span.view, span.startDayKey, delta) });
+
+  // ← / → page the agenda, T jumps back to today (never while typing).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === 'ArrowLeft') router.push(step(-1));
+      else if (e.key === 'ArrowRight') router.push(step(1));
+      else if (e.key.toLowerCase() === 't') router.push(agendaHref(basePath, { ...query, date: null }));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
   const rangeLabel =
     span.view === 'day' ? formatDayKey(span.startDayKey) : formatDayRange(span.startDayKey, span.endDayKey);
