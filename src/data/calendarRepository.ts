@@ -56,6 +56,7 @@ function toEvent(row: CalendarEventRow): CalendarEvent {
     recurrence_rule: row.recurrence_rule,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    updated_by: row.updated_by ?? null,
     deleted_at: row.deleted_at,
   };
 }
@@ -424,6 +425,42 @@ export async function updateEvent(
     { ...input },
   );
   return toEvent(row);
+}
+
+/**
+ * Field-scoped, version-guarded update: writes only `columns`, and only if
+ * the row still carries the `updated_at` the caller merged against.
+ *
+ * Returns null when the row moved in between (or vanished) — the caller
+ * re-reads and re-merges instead of overwriting a change it has not seen.
+ * This is the web half of "a second editor is told, never overwritten".
+ */
+export async function updateEventColumns(
+  supa: Supa,
+  id: string,
+  input: Partial<EventWriteInput>,
+  columns: readonly string[],
+  expectedUpdatedAt: string,
+): Promise<CalendarEvent | null> {
+  const body: Record<string, unknown> = {};
+  for (const column of columns) {
+    if (column in input) body[column] = (input as Record<string, unknown>)[column];
+  }
+  const row = await writeTolerantly(
+    async (payload) =>
+      unwrapMaybe<CalendarEventRow>(
+        await supa
+          .from('calendar_events')
+          .update(payload as never)
+          .eq('id', id)
+          .eq('updated_at', expectedUpdatedAt)
+          .select('*')
+          .maybeSingle(),
+        'updateEventColumns',
+      ),
+    body,
+  );
+  return row === null ? null : toEvent(row);
 }
 
 /**

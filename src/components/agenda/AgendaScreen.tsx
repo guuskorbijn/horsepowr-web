@@ -8,6 +8,7 @@ import { getReaderTimeZone } from '@/lib/readerTimeZone.server';
 import { getServerT } from '@/i18n/server';
 import { log } from '@/lib/log';
 import { loadAgenda, type AgendaPayload } from '@/services/calendar/agendaLoader';
+import { listTemplates, type TrainingTemplate } from '@/data/templateRepository';
 import type { AgendaQuery } from '@/services/calendar/agendaQuery';
 import type { LocationRow } from '@/types/db';
 
@@ -18,6 +19,7 @@ type LoadResult =
       orgId: string;
       userId: string;
       readerTimeZoneIsFallback: boolean;
+      templates: TrainingTemplate[];
     })
   | { status: 'error' }
   | { status: 'no-org' };
@@ -34,13 +36,19 @@ async function load(query: AgendaQuery): Promise<LoadResult> {
       filters: {
         ...(query.horseId !== null ? { horseId: query.horseId } : {}),
         ...(query.assigneeId !== null ? { assigneeId: query.assigneeId } : {}),
+        ...(query.type !== null ? { types: [query.type] } : {}),
       },
       readerTimeZone: reader.timeZone,
       nowIso: new Date().toISOString(),
     });
+    const templates = await listTemplates(supa, ctx.org.id).catch((err: unknown) => {
+      log.warn('agenda: templates unavailable', { error: err instanceof Error ? err.message : String(err) });
+      return [] as TrainingTemplate[];
+    });
     return {
       status: 'ok',
       ...payload,
+      templates,
       locations: ctx.locations,
       canEdit: ctx.capabilities.canEdit,
       orgId: ctx.org.id,
@@ -111,6 +119,8 @@ export async function AgendaScreen({
         horses={result.horses}
         locations={result.locations}
         assignees={result.assignees}
+        templates={result.templates}
+        layout={query.layout}
       />
     </>
   );

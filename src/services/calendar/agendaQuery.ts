@@ -1,5 +1,6 @@
 import { parseCivilDayKey } from '@/services/time/civilDate';
 import { asAgendaView, type AgendaView } from '@/services/calendar/agendaService';
+import { CALENDAR_EVENT_TYPES, type CalendarEventType } from '@/types/calendar';
 
 /**
  * The agenda's URL state — PURE.
@@ -16,7 +17,13 @@ export interface AgendaQuery {
   date: string | null;
   horseId: string | null;
   assigneeId: string | null;
+  /** One kind of item, or null for every kind. */
+  type: CalendarEventType | null;
+  /** 'list' (cards per day) or 'time' (hour axis). */
+  layout: AgendaLayout;
 }
+
+export type AgendaLayout = 'list' | 'time';
 
 export type SearchParamValue = string | string[] | undefined;
 
@@ -32,6 +39,12 @@ function asDayKey(value: string | null): string | null {
   return value !== null && parseCivilDayKey(value) !== null ? value : null;
 }
 
+function asType(value: string | null): CalendarEventType | null {
+  return (CALENDAR_EVENT_TYPES as readonly string[]).includes(value ?? '')
+    ? (value as CalendarEventType)
+    : null;
+}
+
 function asId(value: string | null): string | null {
   return value !== null && ID.test(value) ? value : null;
 }
@@ -43,6 +56,8 @@ export function parseAgendaQuery(params: Readonly<Record<string, SearchParamValu
     date: asDayKey(first(params.date)) ?? asDayKey(first(params.week)),
     horseId: asId(first(params.horse)),
     assigneeId: asId(first(params.assignee)),
+    type: asType(first(params.type)),
+    layout: first(params.layout) === 'time' ? 'time' : 'list',
   };
 }
 
@@ -53,6 +68,8 @@ export function agendaHref(basePath: string, query: AgendaQuery): string {
   if (query.date !== null) params.set('date', query.date);
   if (query.horseId !== null) params.set('horse', query.horseId);
   if (query.assigneeId !== null) params.set('assignee', query.assigneeId);
+  if (query.type !== null) params.set('type', query.type);
+  if (query.layout === 'time') params.set('layout', 'time');
   const search = params.toString();
   return search === '' ? basePath : `${basePath}?${search}`;
 }

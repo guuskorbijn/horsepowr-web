@@ -8,6 +8,10 @@ import { EmptyState } from '@/components/ui/states';
 import { requireSessionContext } from '@/lib/session';
 import { LocaleProvider } from '@/i18n/LocaleProvider';
 import { getServerLocale } from '@/i18n/server';
+import { LiveProvider } from '@/components/live/LiveProvider';
+import { getServerSupabase } from '@/lib/supabase/server';
+import { listOrgProfiles } from '@/data/profileRepository';
+import { log } from '@/lib/log';
 
 export default async function AppGroupLayout({ children }: { children: ReactNode }) {
   const [ctx, locale, reader] = await Promise.all([
@@ -15,7 +19,19 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
     getServerLocale(),
     getReaderTimeZone(),
   ]);
+  // Names for "changed by Maud" in live toasts. Never a reason the app fails.
+  const people = ctx.org
+    ? await listOrgProfiles(await getServerSupabase(), ctx.org.id)
+        .then((rows) => rows.map((p) => ({ id: p.id, label: p.name ?? p.email ?? '' })))
+        .catch((err: unknown) => {
+          log.warn('layout: people for live toasts unavailable', {
+            error: err instanceof Error ? err.message : String(err),
+          });
+          return [];
+        })
+    : [];
   const user = {
+    id: ctx.userId,
     name: ctx.profile.name ?? ctx.email,
     email: ctx.email,
     role: ctx.role,
@@ -25,6 +41,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
     <LocaleProvider initialLocale={locale}>
       <ReaderTimeZoneProvider timeZone={reader.timeZone}>
         <TimeZoneSync />
+        <LiveProvider orgId={ctx.org?.id ?? null} userId={ctx.userId} people={people}>
         <AppShell user={user} org={ctx.org} locations={ctx.locations}>
           {ctx.org ? (
             children
@@ -36,6 +53,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
             />
           )}
         </AppShell>
+        </LiveProvider>
       </ReaderTimeZoneProvider>
     </LocaleProvider>
   );

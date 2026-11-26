@@ -1,4 +1,4 @@
-import { formEndToUtc, formStartToUtc, formTargets } from './eventFormMapper';
+import { formEndToUtc, formRecurrenceRule, formStartToUtc, formTargets } from './eventFormMapper';
 import type { CalendarEventFormValues } from '@/types/calendarForm';
 
 /**
@@ -46,7 +46,9 @@ export function changedEventFields(
     if (before[key] !== after[key]) changed.push(column);
   }
 
-  if (before.recurrencePreset !== after.recurrencePreset) {
+  // Compared as the rule each side would write, so "every 5 weeks" -> "every
+  // 7 weeks" counts as a change even though both are the 'interval' preset.
+  if (formRecurrenceRule(before) !== formRecurrenceRule(after)) {
     changed.push('recurrence_rule');
   }
   if (JSON.stringify(formTargets(before)) !== JSON.stringify(formTargets(after))) {

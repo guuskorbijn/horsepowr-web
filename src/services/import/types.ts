@@ -7,12 +7,17 @@
  * session indistinguishable from a recorded one once it is stored.
  */
 
-export type ActivityFormat = 'tcx' | 'gpx' | 'fit';
+export type ActivityFormat = 'tcx' | 'gpx' | 'fit' | 'csv';
 
 /** The raw upload, after decompression and size checks. */
 export interface ActivityFileInput {
   fileName: string;
   bytes: Uint8Array;
+  /**
+   * The uploader's IANA zone. Only formats that store LOCAL time (Polar's
+   * CSV) need it; the XML formats and FIT carry UTC instants.
+   */
+  timeZone?: string;
 }
 
 export interface ParsedHrSample {

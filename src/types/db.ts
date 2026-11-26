@@ -111,11 +111,26 @@ export type SessionRow = {
    */
   planned_occurrence_start?: string | null;
   planned_targets_snapshot?: unknown;
+  /**
+   * Provenance (20261126000001_sessions_source.sql, applied). Optional
+   * because rows read through older selects omit them.
+   */
+  source?: SessionSource;
+  source_file_sha256?: string | null;
+  external_id?: string | null;
   physical_rating: number | null;
   mental_rating: number | null;
   injury_concern: boolean;
   injury_recovery: boolean;
 }
+
+export type SessionSource =
+  | 'recorded'
+  | 'import_tcx'
+  | 'import_gpx'
+  | 'import_fit'
+  | 'import_csv'
+  | 'polar_accesslink';
 
 export type MeasurementRow = {
   id: string;
@@ -178,6 +193,7 @@ export type CalendarEventRow = {
   recurrence_rule: string | null;
   created_at: string;
   updated_at: string;
+  updated_by?: string | null;
   deleted_at: string | null;
 }
 
@@ -209,6 +225,101 @@ interface TableDef<Row, Insert> {
   Update: Partial<Row>;
   Relationships: [];
 }
+
+export const CONTACT_ROLES = ['owner', 'vet', 'farrier', 'physio', 'rider', 'other'] as const;
+export type ContactRole = (typeof CONTACT_ROLES)[number];
+
+/** `contacts` (20261126000003). Soft-deleted. */
+export type ContactRow = {
+  id: string;
+  org_id: string;
+  name: string;
+  role: ContactRole;
+  company: string | null;
+  phone: string | null;
+  email: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+export type HorseContactRow = {
+  horse_id: string;
+  contact_id: string;
+  created_at: string;
+};
+
+export const HEALTH_RECORD_KINDS = [
+  'note', 'vaccination', 'deworming', 'injury', 'treatment', 'dental', 'other',
+] as const;
+export type HealthRecordKind = (typeof HEALTH_RECORD_KINDS)[number];
+
+/**
+ * `horse_health_records` (20261126000003). What the stable wants to
+ * remember — never interpreted by HorsePowr. Soft-deleted.
+ */
+export type HealthRecordRow = {
+  id: string;
+  org_id: string;
+  horse_id: string;
+  kind: HealthRecordKind;
+  /** YYYY-MM-DD */
+  occurred_on: string;
+  title: string;
+  body: string | null;
+  /** YYYY-MM-DD; a vaccination's expiry. */
+  valid_until: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+export type PolarInboxRow = {
+  id: string;
+  org_id: string;
+  user_id: string;
+  polar_exercise_id: string;
+  started_at: string;
+  duration_sec: number | null;
+  sport: string | null;
+  has_hr: boolean;
+  tcx: string;
+  suggested_horse_id: string | null;
+  status: 'pending' | 'imported' | 'dismissed';
+  session_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** `training_templates` (20261127000001). */
+export type TrainingTemplateRow = {
+  id: string;
+  org_id: string;
+  name: string;
+  training_type: string | null;
+  duration_min: number | null;
+  targets: unknown;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+/** `event_checklist_items` (20261127000001). */
+export type ChecklistItemRow = {
+  id: string;
+  org_id: string;
+  event_id: string;
+  label: string;
+  done: boolean;
+  position: number;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 export interface Database {
   public: {
@@ -265,6 +376,39 @@ export interface Database {
           | 'created_at' | 'updated_at' | 'deleted_at' | 'cancelled' | 'starts_at'
           | 'ends_at' | 'title' | 'notes' | 'assignee_id' | 'status' | 'targets'
         >
+      >;
+      contacts: TableDef<
+        ContactRow,
+        InsertOf<
+          ContactRow,
+          | 'id' | 'role' | 'company' | 'phone' | 'email' | 'notes' | 'created_by'
+          | 'created_at' | 'updated_at' | 'deleted_at'
+        >
+      >;
+      horse_contacts: TableDef<HorseContactRow, InsertOf<HorseContactRow, 'created_at'>>;
+      horse_health_records: TableDef<
+        HealthRecordRow,
+        InsertOf<
+          HealthRecordRow,
+          | 'id' | 'kind' | 'body' | 'valid_until' | 'created_by' | 'created_at'
+          | 'updated_at' | 'deleted_at'
+        >
+      >;
+      polar_inbox: TableDef<
+        PolarInboxRow,
+        InsertOf<
+          PolarInboxRow,
+          'id' | 'duration_sec' | 'sport' | 'has_hr' | 'suggested_horse_id' | 'status'
+          | 'session_id' | 'created_at' | 'updated_at'
+        >
+      >;
+      training_templates: TableDef<
+        TrainingTemplateRow,
+        InsertOf<TrainingTemplateRow, 'id' | 'training_type' | 'duration_min' | 'targets' | 'created_by' | 'created_at' | 'updated_at' | 'deleted_at'>
+      >;
+      event_checklist_items: TableDef<
+        ChecklistItemRow,
+        InsertOf<ChecklistItemRow, 'id' | 'done' | 'position' | 'updated_by' | 'created_at' | 'updated_at'>
       >;
       session_gait_segments: TableDef<
         SessionGaitSegmentsRow,

@@ -1,6 +1,6 @@
 /**
  * MIRRORED FROM THE MOBILE REPO — do not edit here.
- * Vendored from the mobile repo, commit cc497bd, do not edit here.
+ * Vendored from the mobile repo, commit 3166118, do not edit here.
  *
  * Source: horsepowr/src/services/calendar/plannedVsActualService.ts
  *
@@ -16,7 +16,7 @@
 
 import { getZone, zoneValueBands, type ZoneKey } from '@/services/hrZone';
 import type { Measurement } from '@/types/measurement';
-import type { TrainingTargets } from '@/services/calendar/trainingTargets';
+import type { TargetBlock, TrainingTargets } from '@/services/calendar/trainingTargets';
 
 /**
  * Planned versus measured — PURE, no I/O, no clock.
@@ -116,8 +116,40 @@ export interface PlannedVsActualCoverage {
  */
 export type HrOmittedReason = 'no-target' | 'no-data';
 
+/**
+ * One planned block next to what was measured, for a block with an HR target.
+ *
+ * Measured over the WHOLE session, not a guessed window: the device does not
+ * know when the rider started the block, and inventing an alignment would put
+ * a number on the screen that nobody measured. So the card says "time spent at
+ * 165-175: 3:40 of a planned 4:00", plus — for an interval — how many
+ * separate stretches at that rate were long enough to count as a bout.
+ */
+export interface PlannedVsActualBlock {
+  index: number;
+  kind: 'steady' | 'interval';
+  label: string | null;
+  targetMinBpm: number | null;
+  targetMaxBpm: number | null;
+  /** Planned time AT the target rate (interval: repeats x work). */
+  plannedTargetMs: number;
+  /** Measured time inside the block's range, whole session. */
+  measuredInsideMs: number;
+  /** Interval only: planned work bouts. */
+  plannedBouts: number | null;
+  /**
+   * Interval only: contiguous stretches inside the range lasting at least half
+   * the planned work duration (brief dips under MAX_ATTRIBUTED_GAP_MS merge).
+   */
+  measuredBouts: number | null;
+  /** Interval only: the longest such stretch. */
+  longestBoutMs: number | null;
+}
+
 export interface PlannedVsActual {
   duration: PlannedVsActualDuration;
+  /** Per planned block with an HR target; empty without blocks. */
+  blocks: PlannedVsActualBlock[];
   /** Null when the plan had no HR target, or the session captured no HR. */
   hr: PlannedVsActualHr | null;
   /** Set exactly when `hr` is null; null otherwise. */
@@ -192,6 +224,85 @@ export function targetZoneSpan(
   return span;
 }
 
+function blockRange(block: TargetBlock): { min: number | null; max: number | null } {
+  return block.kind === 'interval'
+    ? { min: block.workHrMinBpm ?? null, max: block.workHrMaxBpm ?? null }
+    : { min: block.hrMinBpm ?? null, max: block.hrMaxBpm ?? null };
+}
+
+/** Contiguous inside-range stretches, as [start, end] ms. */
+function insideStretches(
+  samples: readonly Measurement[],
+  min: number | null,
+  max: number | null,
+  maxGapMs: number,
+): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  let open: [number, number] | null = null;
+  for (let i = 0; i < samples.length - 1; i++) {
+    const current = samples[i];
+    const next = samples[i + 1];
+    if (!current || !next || current.hr_bpm === null) continue;
+    const t0 = tsMs(current);
+    const t1 = tsMs(next);
+    const inside =
+      t1 - t0 <= maxGapMs && classifyAgainstTarget(current.hr_bpm, min, max) === 'inside';
+    if (inside) {
+      if (open !== null && t0 - open[1] <= maxGapMs) open[1] = t1;
+      else {
+        if (open !== null) out.push(open);
+        open = [t0, t1];
+      }
+    }
+  }
+  if (open !== null) out.push(open);
+  return out;
+}
+
+export function compareBlocks(
+  samples: readonly Measurement[],
+  blocks: readonly TargetBlock[],
+  maxGapMs: number = MAX_ATTRIBUTED_GAP_MS,
+): PlannedVsActualBlock[] {
+  const out: PlannedVsActualBlock[] = [];
+  blocks.forEach((block, index) => {
+    const { min, max } = blockRange(block);
+    if (min === null && max === null) return;
+    const stretches = insideStretches(samples, min, max, maxGapMs);
+    const measuredInsideMs = stretches.reduce((sum, [a, b]) => sum + (b - a), 0);
+    if (block.kind === 'interval') {
+      const workMs = block.workDurationSec * 1000;
+      const bouts = stretches.filter(([a, b]) => b - a >= workMs / 2);
+      out.push({
+        index,
+        kind: 'interval',
+        label: block.label ?? null,
+        targetMinBpm: min,
+        targetMaxBpm: max,
+        plannedTargetMs: block.repeat * workMs,
+        measuredInsideMs,
+        plannedBouts: block.repeat,
+        measuredBouts: bouts.length,
+        longestBoutMs: bouts.length === 0 ? null : Math.max(...bouts.map(([a, b]) => b - a)),
+      });
+      return;
+    }
+    out.push({
+      index,
+      kind: 'steady',
+      label: block.label ?? null,
+      targetMinBpm: min,
+      targetMaxBpm: max,
+      plannedTargetMs: block.durationSec * 1000,
+      measuredInsideMs,
+      plannedBouts: null,
+      measuredBouts: null,
+      longestBoutMs: null,
+    });
+  });
+  return out;
+}
+
 function pct(part: number, whole: number): number | null {
   if (whole <= 0) return null;
   return (part / whole) * 100;
@@ -226,6 +337,7 @@ export function comparePlannedVsActual(
   };
 
   const samples = hrSamples(measurements);
+  const blocks = compareBlocks(samples, targets?.blocks ?? [], maxAttributedGapMs);
 
   // Dwell accounting. The loop stops one short because an interval needs a
   // following sample to have a length — the same reason computeStats does.
@@ -270,10 +382,10 @@ export function comparePlannedVsActual(
   // keeps "the plan asked for nothing" distinguishable from "the sensor
   // recorded nothing", which are different facts about the session.
   if (!hasTarget) {
-    return { duration, hr: null, hrOmittedReason: 'no-target', coverage };
+    return { duration, blocks, hr: null, hrOmittedReason: 'no-target', coverage };
   }
   if (samples.length === 0) {
-    return { duration, hr: null, hrOmittedReason: 'no-data', coverage };
+    return { duration, blocks, hr: null, hrOmittedReason: 'no-data', coverage };
   }
 
   const bpms = samples
@@ -298,5 +410,5 @@ export function comparePlannedVsActual(
     targetZones: targetZoneSpan(minBpm, maxBpm, maxHr),
   };
 
-  return { duration, hr, hrOmittedReason: null, coverage };
+  return { duration, blocks, hr, hrOmittedReason: null, coverage };
 }

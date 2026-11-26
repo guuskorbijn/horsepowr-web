@@ -1,5 +1,7 @@
 import {
+  intervalToRule,
   presetToRule,
+  ruleToInterval,
   ruleToPreset,
   type RecurrencePreset,
 } from '@/services/calendar/recurrenceService';
@@ -92,10 +94,13 @@ export function formTargets(
   return targets;
 }
 
-function formRecurrenceRule(values: CalendarEventFormValues): string | null {
+export function formRecurrenceRule(values: CalendarEventFormValues): string | null {
   // 'custom' means "leave the stored pattern alone" — the form cannot express
   // it, so it must not be allowed to overwrite it either.
   if (values.recurrencePreset === 'custom') return values.customRecurrenceRule;
+  if (values.recurrencePreset === 'interval') {
+    return intervalToRule(values.recurrenceInterval);
+  }
   return presetToRule(values.recurrencePreset);
 }
 
@@ -141,6 +146,7 @@ export function emptyFormValues(
     notes: null,
     recurrencePreset: 'none',
     customRecurrenceRule: null,
+    recurrenceInterval: { unit: 'week', every: 6 },
     trainingType: null,
     targetHrMinBpm: null,
     targetHrMaxBpm: null,
@@ -183,6 +189,7 @@ export function eventToFormValues(
     notes: event.notes,
     recurrencePreset: preset,
     customRecurrenceRule: preset === 'custom' ? event.recurrence_rule : null,
+    recurrenceInterval: ruleToInterval(event.recurrence_rule) ?? { unit: 'week', every: 6 },
     trainingType: asTrainingType(event.training_type),
     targetHrMinBpm: event.targets?.hrMinBpm ?? null,
     targetHrMaxBpm: event.targets?.hrMaxBpm ?? null,

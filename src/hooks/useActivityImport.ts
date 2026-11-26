@@ -65,6 +65,8 @@ async function post(path: string, file: File, fields: Record<string, string>): P
   form.set('file', body, file.name);
   form.set('fileName', file.name);
   form.set('encoding', encoding);
+  // Polar's CSV stores local wall-clock time; the browser's zone anchors it.
+  form.set('timeZone', Intl.DateTimeFormat().resolvedOptions().timeZone);
   for (const [key, value] of Object.entries(fields)) form.set(key, value);
   return fetch(path, { method: 'POST', body: form });
 }

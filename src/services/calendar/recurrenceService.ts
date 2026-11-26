@@ -1,6 +1,6 @@
 /**
  * MIRRORED FROM THE MOBILE REPO — do not edit here.
- * Vendored from the mobile repo, commit cc497bd, do not edit here.
+ * Vendored from the mobile repo, commit 3166118, do not edit here.
  *
  * Source: horsepowr/src/services/calendar/recurrenceService.ts
  *
@@ -444,6 +444,7 @@ export type RecurrencePreset =
   | 'every_8_weeks'
   | 'monthly'
   | 'yearly'
+  | 'interval'
   | 'custom';
 
 export const RECURRENCE_PRESETS: readonly RecurrencePreset[] = [
@@ -456,6 +457,7 @@ export const RECURRENCE_PRESETS: readonly RecurrencePreset[] = [
   'every_8_weeks',
   'monthly',
   'yearly',
+  'interval',
 ] as const;
 
 const PRESET_RULES: Partial<Record<RecurrencePreset, string>> = {
@@ -474,7 +476,59 @@ export function presetToRule(preset: RecurrencePreset): string | null {
   return PRESET_RULES[preset] ?? null;
 }
 
-/** Which preset a stored rule corresponds to, or 'custom' when none matches. */
+/**
+ * "Every N days" / "every N weeks" — the free-form half of the picker.
+ *
+ * The farrier comes every five weeks at one stable and every seven at another;
+ * deworming runs on a day count. A fixed list cannot hold that, a full RRULE
+ * editor is the wrong answer, so this is the one extra degree of freedom: a
+ * count and a unit. Anything richer (BYDAY, COUNT, UNTIL) stays `custom`.
+ */
+export type RecurrenceIntervalUnit = 'day' | 'week';
+
+export interface RecurrenceInterval {
+  unit: RecurrenceIntervalUnit;
+  every: number;
+}
+
+export const RECURRENCE_INTERVAL_MIN = 1;
+export const RECURRENCE_INTERVAL_MAX = 365;
+
+/** The RRULE for "every N days/weeks", or null for an out-of-range count. */
+export function intervalToRule(interval: RecurrenceInterval): string | null {
+  const every = Math.trunc(interval.every);
+  if (!Number.isFinite(every)) return null;
+  if (every < RECURRENCE_INTERVAL_MIN || every > RECURRENCE_INTERVAL_MAX) return null;
+  return formatRecurrenceRule({
+    freq: interval.unit === 'day' ? 'DAILY' : 'WEEKLY',
+    interval: every,
+    byDay: [],
+    byMonthDay: [],
+    count: null,
+    until: null,
+  });
+}
+
+/**
+ * The interval a stored rule expresses, or null when the rule carries more
+ * than a frequency and a count (and must therefore stay `custom`).
+ */
+export function ruleToInterval(rule: string | null): RecurrenceInterval | null {
+  if (rule === null || rule.trim().length === 0) return null;
+  const parsed = parseRecurrenceRule(rule);
+  if (!parsed.ok) return null;
+  const r = parsed.rule;
+  if (r.byDay.length > 0 || r.byMonthDay.length > 0) return null;
+  if (r.count !== null || r.until !== null) return null;
+  if (r.freq === 'DAILY') return { unit: 'day', every: r.interval };
+  if (r.freq === 'WEEKLY') return { unit: 'week', every: r.interval };
+  return null;
+}
+
+/**
+ * Which preset a stored rule corresponds to: a named preset when one matches
+ * exactly, `interval` for a plain every-N-days/weeks rule, else `custom`.
+ */
 export function ruleToPreset(rule: string | null): RecurrencePreset {
   if (rule === null || rule.trim().length === 0) return 'none';
   const parsed = parseRecurrenceRule(rule);
@@ -484,5 +538,26 @@ export function ruleToPreset(rule: string | null): RecurrencePreset {
     const candidate = PRESET_RULES[preset];
     if (candidate !== undefined && candidate === normalised) return preset;
   }
+  if (ruleToInterval(rule) !== null) return 'interval';
   return 'custom';
+}
+
+/**
+ * A display descriptor for a stored rule: the i18n key suffix plus the
+ * interpolation values. Both clients render the same words from it.
+ */
+export interface RecurrenceLabel {
+  key: RecurrencePreset | 'intervalDays' | 'intervalWeeks';
+  count?: number;
+}
+
+export function describeRecurrence(rule: string | null): RecurrenceLabel {
+  const preset = ruleToPreset(rule);
+  if (preset !== 'interval') return { key: preset };
+  const interval = ruleToInterval(rule);
+  if (interval === null) return { key: 'custom' };
+  return {
+    key: interval.unit === 'day' ? 'intervalDays' : 'intervalWeeks',
+    count: interval.every,
+  };
 }

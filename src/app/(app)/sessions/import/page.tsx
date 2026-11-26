@@ -6,11 +6,19 @@ import { ImportFlow } from '@/components/import/ImportFlow';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { requireSessionContext } from '@/lib/session';
 import { listHorses } from '@/data/horseRepository';
+import { listOrgProfiles } from '@/data/profileRepository';
+import { listPendingInbox, type PolarInboxItem } from '@/data/polarRepository';
+import { PolarInbox } from '@/components/import/PolarInbox';
 import { getServerT } from '@/i18n/server';
 import { log } from '@/lib/log';
 
 type LoadResult =
-  | { status: 'ok'; horses: Array<{ id: string; name: string; maxHr: number }> }
+  | {
+      status: 'ok';
+      horses: Array<{ id: string; name: string; maxHr: number }>;
+      inbox: PolarInboxItem[];
+      people: Array<{ id: string; label: string }>;
+    }
   | { status: 'read-only' }
   | { status: 'error' };
 
@@ -18,8 +26,22 @@ async function load(): Promise<LoadResult> {
   const ctx = await requireSessionContext();
   if (!ctx.org || !ctx.capabilities.canImport) return { status: 'read-only' };
   try {
-    const horses = await listHorses(await getServerSupabase(), ctx.org.id);
-    return { status: 'ok', horses: horses.map((h) => ({ id: h.id, name: h.name, maxHr: h.max_hr })) };
+    const supa = await getServerSupabase();
+    const [horses, inbox, profiles] = await Promise.all([
+      listHorses(supa, ctx.org.id),
+      // The Polar inbox is an extra, never a reason the file import fails.
+      listPendingInbox(supa).catch((err: unknown) => {
+        log.error('import: polar inbox unavailable', { error: err instanceof Error ? err.message : String(err) });
+        return [] as PolarInboxItem[];
+      }),
+      listOrgProfiles(supa, ctx.org.id),
+    ]);
+    return {
+      status: 'ok',
+      horses: horses.map((h) => ({ id: h.id, name: h.name, maxHr: h.max_hr })),
+      inbox,
+      people: profiles.map((p) => ({ id: p.id, label: p.name ?? p.email ?? p.id })),
+    };
   } catch (err: unknown) {
     log.error('import: could not load horses', { error: err instanceof Error ? err.message : String(err) });
     return { status: 'error' };
@@ -27,7 +49,8 @@ async function load(): Promise<LoadResult> {
 }
 
 /**
- * Import a ride from a Polar Flow export (TCX, GPX, FIT). Trainer-only, the
+ * Import a ride from a Polar Flow export (TCX, GPX, FIT, CSV), or file one
+ * that arrived through the Polar link. Trainer-only, the
  * same split RLS enforces on sessions and measurements.
  */
 export default async function ImportPage() {
@@ -46,7 +69,10 @@ export default async function ImportPage() {
       ) : result.status === 'error' ? (
         <ErrorState description={t('sessionsPage.errorLoad')} />
       ) : (
-        <ImportFlow horses={result.horses} />
+        <>
+          <PolarInbox items={result.inbox} horses={result.horses} people={result.people} />
+          <ImportFlow horses={result.horses} />
+        </>
       )}
     </>
   );

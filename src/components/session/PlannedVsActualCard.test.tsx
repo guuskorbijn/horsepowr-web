@@ -8,6 +8,7 @@ afterEach(cleanup);
 
 const compared: PlannedComparison = {
   kind: 'compared',
+    blocks: [],
   plannedEventId: 'evt-1',
   targetBand: { minBpm: 150, maxBpm: 170 },
   comparison: {
@@ -27,6 +28,7 @@ const compared: PlannedComparison = {
       targetZones: ['z3', 'z4'],
     },
     hrOmittedReason: null,
+  blocks: [],
     coverage: {
       coveredMs: 1_000_000,
       durationMs: 48 * 60_000,

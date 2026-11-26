@@ -26,4 +26,4 @@ export const MAX_PLAUSIBLE_SPEED_MS = 25;
 /** Rows per insert request, matching the mobile sync's chunk size. */
 export const MEASUREMENT_INSERT_CHUNK = 500;
 
-export const ACCEPTED_EXTENSIONS = ['.tcx', '.gpx', '.fit'] as const;
+export const ACCEPTED_EXTENSIONS = ['.tcx', '.gpx', '.fit', '.csv'] as const;

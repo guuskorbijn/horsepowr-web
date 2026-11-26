@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { TopBar } from '@/components/shell/TopBar';
 import { QuickSwitcher } from '@/components/shell/QuickSwitcher';
+import { PageTransition } from '@/components/shell/PageTransition';
 import { OrgProvider } from '@/components/shell/OrgContext';
 import { SessionProvider } from '@/components/shell/SessionContext';
 import type { SessionUser } from '@/components/shell/UserMenu';
@@ -26,7 +27,9 @@ export function AppShell({
           <Sidebar />
           <div className="flex min-w-0 flex-1 flex-col">
             <TopBar user={user} />
-            <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">{children}</main>
+            <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">
+              <PageTransition>{children}</PageTransition>
+            </main>
           </div>
         </div>
         <QuickSwitcher />

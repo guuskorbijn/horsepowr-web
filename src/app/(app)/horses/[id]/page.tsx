@@ -11,11 +11,27 @@ import { getServerSupabase } from '@/lib/supabase/server';
 import { requireSessionContext } from '@/lib/session';
 import { getHorse } from '@/data/horseRepository';
 import { listSessionsForHorse } from '@/data/sessionRepository';
+import { listHealthRecordsForHorse } from '@/data/healthRecordRepository';
+import { listContacts, listHorseContactLinks } from '@/data/contactRepository';
+import { HorseHealthCard } from '@/components/horse/HorseHealthCard';
+import { HorseContactsCard } from '@/components/horse/HorseContactsCard';
+import { TrainingCalendarCard } from '@/components/horse/TrainingCalendarCard';
+import { buildTrainingCalendar } from '@/services/trainingCalendar';
 import { getServerT } from '@/i18n/server';
-import type { HorseRow, LocationRow, SessionRow } from '@/types/db';
+import type { ContactRow, HealthRecordRow, HorseRow, LocationRow, SessionRow } from '@/types/db';
 
 type LoadResult =
-  | { status: 'ok'; horse: HorseRow; sessions: SessionRow[]; locations: LocationRow[] }
+  | {
+      status: 'ok';
+      horse: HorseRow;
+      sessions: SessionRow[];
+      locations: LocationRow[];
+      health: HealthRecordRow[];
+      contacts: ContactRow[];
+      orgId: string;
+      userId: string;
+      canEdit: boolean;
+    }
   | { status: 'not-found' }
   | { status: 'error' };
 
@@ -25,8 +41,24 @@ async function load(id: string): Promise<LoadResult> {
     const supa = await getServerSupabase();
     const horse = await getHorse(supa, id);
     if (!horse) return { status: 'not-found' };
-    const sessions = await listSessionsForHorse(supa, id);
-    return { status: 'ok', horse, sessions, locations: ctx.locations };
+    const [sessions, health, allContacts, links] = await Promise.all([
+      listSessionsForHorse(supa, id),
+      listHealthRecordsForHorse(supa, id),
+      listContacts(supa, horse.org_id),
+      listHorseContactLinks(supa),
+    ]);
+    const linked = new Set(links.filter((l) => l.horse_id === id).map((l) => l.contact_id));
+    return {
+      status: 'ok',
+      horse,
+      sessions,
+      locations: ctx.locations,
+      health,
+      contacts: allContacts.filter((c) => linked.has(c.id)),
+      orgId: horse.org_id,
+      userId: ctx.userId,
+      canEdit: ctx.capabilities.canEdit,
+    };
   } catch {
     return { status: 'error' };
   }
@@ -50,7 +82,7 @@ export default async function HorseDetailPage({
     );
   }
 
-  const { horse, sessions, locations } = result;
+  const { horse, sessions, locations, health, contacts, orgId, userId, canEdit } = result;
   return (
     <>
       <BackLink label={t('nav.commandCenter')} />
@@ -82,6 +114,20 @@ export default async function HorseDetailPage({
       />
       <div className="space-y-6">
         <HorseDetailsCard horse={horse} locations={locations} />
+        <TrainingCalendarCard
+          calendar={buildTrainingCalendar(sessions, new Date().toISOString().slice(0, 10))}
+        />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[3fr_2fr]">
+          <HorseHealthCard
+            horseId={horse.id}
+            horseName={horse.name}
+            orgId={orgId}
+            userId={userId}
+            canEdit={canEdit}
+            records={health}
+          />
+          <HorseContactsCard contacts={contacts} />
+        </div>
         {sessions.length === 0 ? (
           <EmptyState
             title={t('horses.noSessionsTitle')}

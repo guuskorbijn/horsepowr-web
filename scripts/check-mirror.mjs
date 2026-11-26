@@ -16,21 +16,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const web = resolve(here, '..');
 const app = resolve(web, '../horsepowr');
 
-const MIRROR = [
-  ['src/types/calendar.ts', 'src/types/calendar.ts'],
-  ['src/utils/civilDate.ts', 'src/services/time/civilDate.ts'],
-  ['src/utils/timezone.ts', 'src/services/time/timezone.ts'],
-  ['src/schemas/trainingTargets.ts', 'src/services/calendar/trainingTargets.ts'],
-  ['src/services/calendar/recurrenceService.ts', 'src/services/calendar/recurrenceService.ts'],
-  ['src/services/calendar/occurrenceQuery.ts', 'src/services/calendar/occurrenceQuery.ts'],
-  ['src/services/calendar/agendaGrouping.ts', 'src/services/calendar/agendaGrouping.ts'],
-  ['src/services/calendar/rescheduleService.ts', 'src/services/calendar/rescheduleService.ts'],
-  ['src/services/calendar/plannedVsActualService.ts', 'src/services/calendar/plannedVsActualService.ts'],
-  ['src/schemas/plannedSnapshot.ts', 'src/services/calendar/plannedSnapshot.ts'],
-  ['src/services/hrv/hrvService.ts', 'src/services/hrv/hrvService.ts'],
-  ['src/components/loading/pulseGeometry.ts', 'src/components/brand/pulseGeometry.ts'],
-  ['src/constants/motion.ts', 'src/theme/motion.ts'],
-];
+import { MIRROR } from './mirror-list.mjs';
 
 if (!existsSync(app)) {
   console.log('check:mirror - mobile repo not present, skipping.');

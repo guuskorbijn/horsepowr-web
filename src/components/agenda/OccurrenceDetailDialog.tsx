@@ -14,7 +14,7 @@ import {
   upsertOverride,
 } from '@/data/calendarRepository';
 import { notifyCalendarChange } from '@/services/notifications/notifyCalendarChange';
-import { ruleToPreset } from '@/services/calendar/recurrenceService';
+import { blockText, recurrenceText } from '@/services/calendar/planText';
 import { civilDayKey } from '@/services/time/civilDate';
 import {
   formatZonedTime,
@@ -119,9 +119,8 @@ export function OccurrenceDetailDialog({
   }${zoneLabel !== null ? ` (${zoneLabel})` : ''}`;
 
   const trainingType = asTrainingType(master?.training_type ?? null);
-  const recurrenceLabel = t(
-    `agenda.recurrence.${ruleToPreset(master?.recurrence_rule ?? null)}`,
-  );
+  const recurrenceLabel = recurrenceText(master?.recurrence_rule ?? null, t);
+  const blocks = occurrence.targets?.blocks ?? [];
   const targetLine =
     occurrence.targets === null
       ? null
@@ -246,6 +245,15 @@ export function OccurrenceDetailDialog({
           <Row label={t('agenda.detail.repeatLabel')}>{recurrenceLabel}</Row>
           {targetLine !== null ? (
             <Row label={t('agenda.detail.targetLabel')}>{targetLine}</Row>
+          ) : null}
+          {blocks.length > 0 ? (
+            <Row label={t('agenda.blockEditor.title')}>
+              <ol className="space-y-0.5">
+                {blocks.map((block, i) => (
+                  <li key={i} className="tabular-nums">{`${i + 1}. ${blockText(block, t)}`}</li>
+                ))}
+              </ol>
+            </Row>
           ) : null}
           {trainingType !== null ? (
             <Row label={t('agenda.detail.trainingTypeLabel')}>

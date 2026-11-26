@@ -54,7 +54,12 @@ export async function readUpload(form: FormData): Promise<ReadUpload> {
 
   const nameField = form.get('fileName');
   const fileName = safeFileName(typeof nameField === 'string' ? nameField : file.name);
-  const parsed = defaultParserRegistry.parse({ fileName, bytes });
+  const zoneField = form.get('timeZone');
+  const parsed = defaultParserRegistry.parse({
+    fileName,
+    bytes,
+    ...(typeof zoneField === 'string' && zoneField.length <= 64 ? { timeZone: zoneField } : {}),
+  });
   return { fileName, fileSha256: sha256Hex(bytes), activity: normaliseActivity(parsed) };
 }
 

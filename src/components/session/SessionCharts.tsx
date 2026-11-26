@@ -1,5 +1,9 @@
 'use client';
 
+import { useTranslation } from '@/i18n/LocaleProvider';
+import { PlanTrack } from '@/components/charts/PlanTrack';
+import { blockTimeline, type TimelineSegment } from '@/services/calendar/blockTimeline';
+import type { TargetBlock } from '@/services/calendar/trainingTargets';
 import { useMemo, useState } from 'react';
 import { Activity, Zap, Mountain } from 'lucide-react';
 import { TimeSeriesChart } from '@/components/charts/TimeSeriesChart';
@@ -29,6 +33,7 @@ export function SessionCharts({
   gradientProfile,
   maxHr,
   targetBand,
+  plan,
 }: {
   hr: ChartSeries | null;
   speed: ChartSeries | null;
@@ -39,7 +44,20 @@ export function SessionCharts({
   maxHr: number;
   /** The planned HR range, when the session was ridden against one. */
   targetBand?: { minBpm: number | null; maxBpm: number | null; label: string };
+  /** The planned blocks and the recording's start, for the plan track. */
+  plan?: { blocks: TargetBlock[]; startMs: number };
 }) {
+  const { t } = useTranslation();
+  const planSegments = useMemo(() => (plan ? blockTimeline(plan.blocks) : []), [plan]);
+  const planLabel = (s: TimelineSegment): string => {
+    const range =
+      s.hrMinBpm !== null && s.hrMaxBpm !== null ? ` · ${s.hrMinBpm}–${s.hrMaxBpm}` : s.hrMinBpm !== null ? ` · ≥${s.hrMinBpm}` : '';
+    if (s.kind === 'work') {
+      return `${t('session.planWork').replace('{n}', String(s.repeat ?? 1)).replace('{total}', String(s.repeatsTotal ?? 1))}${range}`;
+    }
+    if (s.kind === 'recovery') return t('session.planRecovery');
+    return `${s.label ?? t('agenda.blockEditor.steady')}${range}`;
+  };
   const panels = useMemo<PanelDef[]>(() => {
     const out: PanelDef[] = [];
     if (hr && hr.points.length > 0) {
@@ -151,6 +169,13 @@ export function SessionCharts({
             />
           </div>
         ))}
+
+        {plan !== undefined && planSegments.length > 0 ? (
+          <div>
+            <div className="mb-1 text-[13px] font-medium text-text-primary">Plan</div>
+            <PlanTrack segments={planSegments} startMs={plan.startMs} xWindow={xWindow} labelOf={planLabel} />
+          </div>
+        ) : null}
 
         {showEfforts && hasEfforts ? (
           <div>

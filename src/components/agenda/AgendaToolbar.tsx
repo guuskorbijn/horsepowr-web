@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -9,6 +10,7 @@ import { cn } from '@/lib/cn';
 import { agendaHref, type AgendaQuery } from '@/services/calendar/agendaQuery';
 import { AGENDA_VIEWS, shiftAgenda, type AgendaWindow } from '@/services/calendar/agendaService';
 import { formatDayKey, formatDayRange } from '@/services/format';
+import { CALENDAR_EVENT_TYPES, type CalendarEventType } from '@/types/calendar';
 
 interface Option {
   id: string;
@@ -45,6 +47,20 @@ export function AgendaToolbar({
   const step = (delta: number): string =>
     agendaHref(basePath, { ...query, date: shiftAgenda(span.view, span.startDayKey, delta) });
 
+  // ← / → page the agenda, T jumps back to today (never while typing).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === 'ArrowLeft') router.push(step(-1));
+      else if (e.key === 'ArrowRight') router.push(step(1));
+      else if (e.key.toLowerCase() === 't') router.push(agendaHref(basePath, { ...query, date: null }));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
   const rangeLabel =
     span.view === 'day' ? formatDayKey(span.startDayKey) : formatDayRange(span.startDayKey, span.endDayKey);
 
@@ -79,6 +95,24 @@ export function AgendaToolbar({
           ) : null}
         </div>
 
+        <div className="flex items-center gap-2">
+        <div role="group" aria-label={t('agenda.layoutLabel')} className="flex rounded-md border border-line p-0.5">
+          {(['list', 'time'] as const).map((layout) => (
+            <Link
+              key={layout}
+              href={agendaHref(basePath, { ...query, layout })}
+              aria-current={query.layout === layout ? 'page' : undefined}
+              className={cn(
+                'flex h-10 min-w-[4rem] items-center justify-center rounded px-3 text-[13px] font-medium',
+                query.layout === layout
+                  ? 'bg-primary-soft text-primary'
+                  : 'text-text-secondary hover:bg-surface-muted hover:text-text-primary',
+              )}
+            >
+              {t(layout === 'list' ? 'agenda.layoutList' : 'agenda.layoutTime')}
+            </Link>
+          ))}
+        </div>
         <div role="group" aria-label={t('agenda.viewLabel')} className="flex rounded-md border border-line p-0.5">
           {AGENDA_VIEWS.map((view) => (
             <Link
@@ -95,6 +129,7 @@ export function AgendaToolbar({
               {view === 'day' ? t('agenda.viewDay') : t('agenda.viewWeek')}
             </Link>
           ))}
+        </div>
         </div>
       </div>
 
@@ -125,6 +160,20 @@ export function AgendaToolbar({
             {people.map((person) => (
               <option key={person.id} value={person.id}>
                 {person.label}
+              </option>
+            ))}
+          </Select>
+        </label>
+        <label className="flex min-w-[12rem] flex-1 flex-col gap-1 sm:max-w-xs">
+          <span className="text-[12px] font-medium text-text-secondary">{t('agenda.filter.typeLabel')}</span>
+          <Select
+            value={query.type ?? ''}
+            onChange={(e) => go({ type: (e.target.value || null) as CalendarEventType | null })}
+          >
+            <option value="">{t('agenda.filter.allTypes')}</option>
+            {CALENDAR_EVENT_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {t(`agenda.type.${type}`)}
               </option>
             ))}
           </Select>

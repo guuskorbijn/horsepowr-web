@@ -32,6 +32,8 @@ export interface CommitRequest {
   activity: NormalisedActivity;
   fileSha256: string;
   annotations: ImportAnnotations;
+  /** Set when the ride came through Polar AccessLink rather than a file. */
+  polarExerciseId?: string;
 }
 
 export type CommitOutcome = 'created' | 'resumed' | 'already-imported';
@@ -89,6 +91,12 @@ export async function commitImport(supa: Supa, request: CommitRequest): Promise<
     training_type: request.annotations.trainingType,
     environment: request.annotations.environment,
     location_name: request.annotations.locationName,
+    source:
+      request.polarExerciseId !== undefined
+        ? 'polar_accesslink'
+        : (`import_${request.activity.format}` as const),
+    source_file_sha256: request.fileSha256,
+    external_id: request.polarExerciseId ?? null,
   });
   await insertMeasurementsIgnoringDuplicates(supa, rows, MEASUREMENT_INSERT_CHUNK);
   // `created` is false only when a second tab confirmed the same file in the

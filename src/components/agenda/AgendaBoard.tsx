@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CalendarDays, Plus } from 'lucide-react';
 import { EmptyState } from '@/components/ui/states';
@@ -20,6 +20,8 @@ import {
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import {
   rescheduleOccurrenceToDay,
+  rescheduleOccurrenceToTime,
+  assignOccurrence,
   restoreOccurrenceTimes,
   type OccurrenceTimes,
 } from '@/services/calendar/rescheduleOccurrence';
@@ -27,6 +29,16 @@ import { notifyCalendarChange } from '@/services/notifications/notifyCalendarCha
 import { log } from '@/lib/log';
 import { cn } from '@/lib/cn';
 import { FadeIn } from '@/components/motion/FadeIn';
+import { TYPE_ACCENT } from '@/services/calendar/eventTypeAccent';
+import { useFlip } from '@/lib/useFlip';
+import { AgendaComposer } from '@/components/agenda/AgendaComposer';
+import { TimeGrid } from '@/components/agenda/TimeGrid';
+import { BulkBar } from '@/components/agenda/BulkBar';
+import { formatMinutes } from '@/services/calendar/timeGridLayout';
+import type { AgendaLayout } from '@/services/calendar/agendaQuery';
+import { applyQuickAdd, applyTemplate } from '@/services/calendar/prefill';
+import type { TrainingTemplate } from '@/data/templateRepository';
+import { useLive } from '@/components/live/LiveProvider';
 import { EventFormDialog } from '@/components/agenda/EventFormDialog';
 import { OccurrenceDetailDialog } from '@/components/agenda/OccurrenceDetailDialog';
 import type { CalendarEventFormValues } from '@/types/calendarForm';
@@ -60,14 +72,6 @@ import type { HorseRow, LocationRow, ProfileRow } from '@/types/db';
  * Every value here is a theme token. Coral (`--accent`) is absent on purpose:
  * it is reserved for the single primary action on a screen.
  */
-const TYPE_ACCENT: Record<CalendarEventType, string> = {
-  training: 'var(--primary)',
-  vet: 'var(--info)',
-  physio: 'var(--success)',
-  farrier: 'var(--warning)',
-  competition: 'var(--color-gait-canter)',
-  other: 'var(--line-strong)',
-};
 
 function weekdayLabel(dayKey: string, long: boolean): string {
   // A fixed locale: `undefined` meant the server's locale on the first
@@ -113,7 +117,9 @@ function ItemCard({
   drag: DragApi;
 }) {
   const { t } = useTranslation();
+  const { recent } = useLive();
   const { occurrence, cancelled, done } = item;
+  const justChanged = recent.has(occurrence.event_id);
   const horse =
     occurrence.horse_id === null
       ? t('agenda.wholeStable')
@@ -122,7 +128,15 @@ function ItemCard({
   return (
     <button
       type="button"
-      onClick={() => onOpen(occurrence)}
+      onClick={(e) => {
+        if (canEdit && (e.metaKey || e.ctrlKey || e.shiftKey)) {
+          e.preventDefault();
+          drag.onToggleSelect({ occurrence, dayKey });
+          return;
+        }
+        onOpen(occurrence);
+      }}
+      aria-pressed={drag.selected.has(occurrence.key) || undefined}
       // Dragging is a shortcut, never the only way: the same move is
       // available from the detail dialog's date field, which is what
       // keyboard and screen-reader users have. A drag-only
@@ -134,6 +148,8 @@ function ItemCard({
         e.dataTransfer.setData('text/plain', occurrence.key);
         drag.onDragStart(occurrence, dayKey);
       }}
+      aria-busy={drag.pendingKey === occurrence.key || undefined}
+      data-flip-key={occurrence.key}
       onDragEnd={drag.onDragEnd}
       style={{ borderLeftColor: TYPE_ACCENT[occurrence.type] }}
       className={cn(
@@ -144,6 +160,9 @@ function ItemCard({
         done ? 'bg-surface-muted' : 'bg-surface',
         cancelled && 'opacity-60',
         drag.draggingKey === occurrence.key && 'opacity-40',
+        drag.pendingKey === occurrence.key && 'animate-pulse border-primary/50',
+        justChanged && 'hp-just-changed',
+        drag.selected.has(occurrence.key) && 'ring-2 ring-primary ring-offset-1 ring-offset-app',
       )}
     >
       <div className="flex flex-wrap items-baseline gap-x-2">
@@ -198,7 +217,8 @@ function DayColumn({
 }) {
   const { t } = useTranslation();
   const dayNumber = Number(dayKey.slice(8, 10));
-  const isDropTarget = drag.overDayKey === dayKey && drag.sourceDayKey !== dayKey;
+  const isDropTarget =
+    drag.overDayKey === dayKey && (drag.templateActive || drag.sourceDayKey !== dayKey);
 
   return (
     <div
@@ -210,13 +230,18 @@ function DayColumn({
         isDropTarget && 'bg-primary-soft ring-2 ring-primary ring-offset-2 ring-offset-app',
       )}
       onDragOver={(e) => {
-        if (!drag.active) return;
+        if (!drag.active && !drag.templateActive) return;
         // Without preventDefault the browser refuses the drop outright.
         e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
+        e.dataTransfer.dropEffect = drag.templateActive ? 'copy' : 'move';
         drag.onDragOverDay(dayKey);
       }}
       onDrop={(e) => {
+        if (drag.templateActive) {
+          e.preventDefault();
+          drag.onTemplateDropOnDay(dayKey);
+          return;
+        }
         if (!drag.active) return;
         e.preventDefault();
         drag.onDropOnDay(dayKey);
@@ -280,6 +305,14 @@ function DayColumn({
  * one of them ends up out of step with the others.
  */
 interface DragApi {
+  /** Multi-select: keys currently selected, and the modifier-click toggle. */
+  selected: ReadonlySet<string>;
+  onToggleSelect: (item: { occurrence: EventOccurrence; dayKey: string }) => void;
+  /** A template chip is being dragged (copy onto a day, not a move). */
+  templateActive: boolean;
+  onTemplateDropOnDay: (dayKey: string) => void;
+  /** The card that was just dropped and is being written. */
+  pendingKey: string | null;
   active: boolean;
   draggingKey: string | null;
   sourceDayKey: string | null;
@@ -295,6 +328,8 @@ interface MovedNotice {
   occurrence: EventOccurrence;
   previous: OccurrenceTimes;
   targetDayKey: string;
+  /** Set for a time-grid move: the new time on the reader's clock. */
+  time?: string;
 }
 
 /** What the form dialog is currently editing, or null when it is closed. */
@@ -316,6 +351,8 @@ export function AgendaBoard({
   horses,
   locations,
   assignees,
+  templates = [],
+  layout = 'list',
 }: {
   agenda: Agenda;
   horseNames: Record<string, string>;
@@ -333,9 +370,45 @@ export function AgendaBoard({
   horses: readonly HorseRow[];
   locations: readonly LocationRow[];
   assignees: readonly ProfileRow[];
+  templates?: readonly TrainingTemplate[];
+  layout?: AgendaLayout;
 }) {
   const { t } = useTranslation();
   const router = useRouter();
+  const templateDrag = useRef<TrainingTemplate | null>(null);
+  const [selection, setSelection] = useState<Map<string, { occurrence: EventOccurrence; dayKey: string }>>(new Map());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  /** Applies one write per selected item; reports how many failed. */
+  const runBulk = async (
+    write: (entry: { occurrence: EventOccurrence; dayKey: string }) => Promise<unknown>,
+    changedFields: string[],
+  ): Promise<void> => {
+    setBulkBusy(true);
+    setMoveError(null);
+    let failed = 0;
+    for (const entry of selection.values()) {
+      try {
+        await write(entry);
+        await notifyCalendarChange({
+          eventId: entry.occurrence.event_id,
+          changedFields,
+          occurrenceStart: entry.occurrence.original_start,
+        });
+      } catch (err) {
+        failed += 1;
+        log.error('agenda: bulk action failed for an item', {
+          key: entry.occurrence.key,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    setBulkBusy(false);
+    setSelection(new Map());
+    if (failed > 0) setMoveError(t('agenda.bulk.partial').replace('{n}', String(failed)));
+    router.refresh();
+  };
+  const [templateActive, setTemplateActive] = useState(false);
   const span = agenda.window;
   const empty = agenda.isEmpty;
 
@@ -353,6 +426,40 @@ export function AgendaBoard({
   const [overDayKey, setOverDayKey] = useState<string | null>(null);
   const [moving, setMoving] = useState(false);
   const [moved, setMoved] = useState<MovedNotice | null>(null);
+  // Optimistic placement: the dropped card shows on its new day at once,
+  // marked as saving, instead of sliding back and jumping a second later when
+  // the server round-trip lands. Cleared when fresh server data arrives (the
+  // card is then really there) or when the write fails (it goes back).
+  const [pendingMove, setPendingMove] = useState<{ key: string; from: string; to: string } | null>(null);
+  const lastAgenda = useRef(agenda);
+  useEffect(() => {
+    if (lastAgenda.current !== agenda) {
+      lastAgenda.current = agenda;
+      setPendingMove(null);
+    }
+  }, [agenda]);
+  const days = useMemo(() => {
+    if (pendingMove === null) return agenda.days;
+    const item = agenda.days
+      .find((d) => d.dayKey === pendingMove.from)
+      ?.items.find((i) => i.occurrence.key === pendingMove.key);
+    if (item === undefined) return agenda.days;
+    return agenda.days.map((d) =>
+      d.dayKey === pendingMove.from
+        ? { ...d, items: d.items.filter((i) => i.occurrence.key !== pendingMove.key) }
+        : d.dayKey === pendingMove.to
+          ? {
+              ...d,
+              items: [...d.items, item].sort((a, b) =>
+                (a.readerTime ?? '').localeCompare(b.readerTime ?? ''),
+              ),
+            }
+          : d,
+    );
+  }, [agenda.days, pendingMove]);
+  const gridRef = useRef<HTMLDivElement>(null);
+  useFlip(gridRef);
+  const overRef = useRef<string | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
 
   // The page is a server component, so a write is reflected by re-running it
@@ -368,12 +475,20 @@ export function AgendaBoard({
     return () => clearTimeout(timer);
   }, [moved]);
 
-  const endDrag = useCallback((): void => {
+  function endDrag(): void {
     dragged.current = null;
+    overRef.current = null;
     setDraggingKey(null);
     setSourceDayKey(null);
     setOverDayKey(null);
-  }, []);
+  }
+
+  /** dragover fires every few ms; only a CHANGE of day may re-render. */
+  function overDay(dayKey: string | null): void {
+    if (overRef.current === dayKey) return;
+    overRef.current = dayKey;
+    setOverDayKey(dayKey);
+  }
 
   /**
    * Commit a drop.
@@ -392,13 +507,17 @@ export function AgendaBoard({
 
       setMoving(true);
       setMoveError(null);
+      setPendingMove({ key: payload.occurrence.key, from: payload.dayKey, to: targetDayKey });
       try {
         const result = await rescheduleOccurrenceToDay(getBrowserSupabase(), {
           occurrence: payload.occurrence,
           targetDayKey,
           readerTimeZone: span.readerTimeZone,
         });
-        if (result === null) return;
+        if (result === null) {
+          setPendingMove(null);
+          return;
+        }
         setMoved({
           occurrence: payload.occurrence,
           previous: result.previous,
@@ -416,6 +535,7 @@ export function AgendaBoard({
           key: payload.occurrence.key,
           error: err instanceof Error ? err.message : String(err),
         });
+        setPendingMove(null);
         setMoveError(t('agenda.move.failed'));
       } finally {
         setMoving(false);
@@ -425,6 +545,47 @@ export function AgendaBoard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [endDrag, span.readerTimeZone],
   );
+
+  /** Time-grid drop: another day and/or time, snapped to the quarter hour. */
+  const handleTimeDrop = async (
+    occurrence: EventOccurrence,
+    fromDayKey: string,
+    targetDayKey: string,
+    minutes: number,
+  ): Promise<void> => {
+    setMoving(true);
+    setMoveError(null);
+    if (fromDayKey !== targetDayKey) setPendingMove({ key: occurrence.key, from: fromDayKey, to: targetDayKey });
+    try {
+      const result = await rescheduleOccurrenceToTime(getBrowserSupabase(), {
+        occurrence,
+        targetDayKey,
+        minutes,
+        readerTimeZone: span.readerTimeZone,
+      });
+      if (result === null) {
+        setPendingMove(null);
+        return;
+      }
+      setMoved({ occurrence, previous: result.previous, targetDayKey, time: formatMinutes(minutes) });
+      await notifyCalendarChange({
+        eventId: occurrence.event_id,
+        changedFields: ['starts_at'],
+        occurrenceStart: occurrence.original_start,
+        previousStartsAt: result.previous.startsAt,
+      });
+      refresh();
+    } catch (err) {
+      setPendingMove(null);
+      log.error('agenda: could not move item in time grid', {
+        key: occurrence.key,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      setMoveError(t('agenda.move.failed'));
+    } finally {
+      setMoving(false);
+    }
+  };
 
   const undoMove = useCallback(async (): Promise<void> => {
     if (moved === null) return;
@@ -455,20 +616,79 @@ export function AgendaBoard({
   }, [moved]);
 
   const drag: DragApi = {
+    selected: new Set(selection.keys()),
+    onToggleSelect: ({ occurrence, dayKey }) =>
+      setSelection((prev) => {
+        const next = new Map(prev);
+        if (next.has(occurrence.key)) next.delete(occurrence.key);
+        else next.set(occurrence.key, { occurrence, dayKey });
+        return next;
+      }),
+    templateActive,
+    onTemplateDropOnDay: (dayKey) => {
+      const tpl = templateDrag.current;
+      templateDrag.current = null;
+      setTemplateActive(false);
+      overDay(null);
+      if (tpl !== null) openPrefilled(dayKey, (base) => applyTemplate(base, tpl));
+    },
     active: draggingKey !== null,
+    pendingKey: pendingMove?.key ?? null,
     draggingKey,
     sourceDayKey,
     overDayKey,
     onDragStart: (occurrence, dayKey) => {
       dragged.current = { occurrence, dayKey };
-      setDraggingKey(occurrence.key);
-      setSourceDayKey(dayKey);
-      setMoved(null);
+      // Next frame, not now: see the note on the card's onDragStart.
+      requestAnimationFrame(() => {
+        setDraggingKey(occurrence.key);
+        setSourceDayKey(dayKey);
+        setMoved(null);
+      });
     },
-    onDragOverDay: setOverDayKey,
+    onDragOverDay: overDay,
     onDropOnDay: (dayKey) => void handleDrop(dayKey),
     onDragEnd: endDrag,
   };
+
+  const baseValues = (dayKey: string) => ({
+    ...emptyFormValues({ dayKey, timeZone: span.readerTimeZone, horseId: defaults.horseId ?? null }),
+    assigneeId: defaults.assigneeId ?? null,
+  });
+  const openPrefilled = (
+    dayKey: string,
+    fill: (base: ReturnType<typeof baseValues>) => ReturnType<typeof baseValues>,
+  ): void =>
+    setForm({ values: fill(baseValues(dayKey)), eventId: null, occurrenceStart: null, isSeries: false });
+  const todayKey = agenda.days.find((d) => d.isToday)?.dayKey ?? span.startDayKey;
+
+  // Arriving from ⌘K "Plan something…": straight into the quick-add field.
+  useEffect(() => {
+    if (canEdit && new URLSearchParams(window.location.search).get('compose') === '1') {
+      document.getElementById('agenda-quick-add')?.focus();
+    }
+  }, [canEdit]);
+
+  // Shortcuts: "/" jumps into quick add, "n" opens a new item for today.
+  useEffect(() => {
+    if (!canEdit) return;
+    const onKey = (e: KeyboardEvent): void => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === 'Escape') {
+        setSelection(new Map());
+      } else if (e.key === '/') {
+        e.preventDefault();
+        document.getElementById('agenda-quick-add')?.focus();
+      } else if (e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        setForm({ values: baseValues(todayKey), eventId: null, occurrenceStart: null, isSeries: false });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
   const openCreate = (dayKey: string): void =>
     setForm({
@@ -532,6 +752,25 @@ export function AgendaBoard({
         </div>
       ) : null}
 
+      {canEdit ? (
+        <AgendaComposer
+          todayKey={todayKey}
+          horses={horses.map((h) => ({ id: h.id, name: h.name }))}
+          templates={templates}
+          onQuickAdd={(q) => openPrefilled(q.dayKey ?? todayKey, (base) => applyQuickAdd(base, q))}
+          onTemplate={(tpl) => openPrefilled(todayKey, (base) => applyTemplate(base, tpl))}
+          onTemplateDragStart={(tpl) => {
+            templateDrag.current = tpl;
+            requestAnimationFrame(() => setTemplateActive(true));
+          }}
+          onTemplateDragEnd={() => {
+            templateDrag.current = null;
+            setTemplateActive(false);
+            overDay(null);
+          }}
+        />
+      ) : null}
+
       {/* Drag is invisible until you try it, so it gets one quiet line. Only
           for people who can actually edit — telling a read-only viewer about
           a gesture that will not work is worse than saying nothing. */}
@@ -539,7 +778,20 @@ export function AgendaBoard({
         <p className="mb-3 text-[12px] text-text-tertiary">{t('agenda.move.dragHint')}</p>
       ) : null}
 
-      {empty ? (
+      {layout === 'time' ? (
+        <TimeGrid
+          days={days}
+          readerTimeZone={span.readerTimeZone}
+          horseNames={horseNames}
+          canEdit={canEdit && !moving}
+          pendingKey={pendingMove?.key ?? null}
+          onOpen={setSelected}
+          onMove={(occ, from, to, minutes) => void handleTimeDrop(occ, from, to, minutes)}
+          onAdd={(dayKey, minutes) =>
+            openPrefilled(dayKey, (base) => ({ ...base, startTime: formatMinutes(minutes) }))
+          }
+        />
+      ) : empty ? (
         <EmptyState
           icon={<CalendarDays size={28} />}
           title={span.view === 'day' ? t('agenda.dayEmptyTitle') : t('agenda.weekEmptyTitle')}
@@ -553,8 +805,13 @@ export function AgendaBoard({
             'grid grid-cols-1 gap-4',
             span.view === 'week' && 'sm:grid-cols-2 lg:grid-cols-7',
           )}
+          ref={gridRef}
+          onDragLeave={(e) => {
+            const next = e.relatedTarget;
+            if (!(next instanceof Node) || !e.currentTarget.contains(next)) overDay(null);
+          }}
         >
-          {agenda.days.map((day, dayIndex) => (
+          {days.map((day, dayIndex) => (
             <FadeIn key={day.dayKey} index={dayIndex}>
               <DayColumn
                 dayKey={day.dayKey}
@@ -571,6 +828,29 @@ export function AgendaBoard({
           ))}
         </div>
       )}
+
+      {canEdit ? (
+        <BulkBar
+          count={selection.size}
+          people={assignees}
+          busy={bulkBusy}
+          onMove={(dayKey) =>
+            void runBulk(
+              ({ occurrence }) =>
+                rescheduleOccurrenceToDay(getBrowserSupabase(), {
+                  occurrence,
+                  targetDayKey: dayKey,
+                  readerTimeZone: span.readerTimeZone,
+                }),
+              ['starts_at'],
+            )
+          }
+          onAssign={(assigneeId) =>
+            void runBulk(({ occurrence }) => assignOccurrence(getBrowserSupabase(), occurrence, assigneeId), ['assignee_id'])
+          }
+          onClear={() => setSelection(new Map())}
+        />
+      ) : null}
 
       {/* Move feedback. Anchored to the grid rather than floating over the
           whole app: it is about the thing the user just dropped, and it
@@ -589,6 +869,7 @@ export function AgendaBoard({
         >
           <p className="text-[13px] text-text-primary">
             {t('agenda.move.moved')} {formatDayKey(moved.targetDayKey)}
+            {moved.time ? ` · ${moved.time}` : ''}
           </p>
           <Button
             type="button"
