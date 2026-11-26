@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CalendarDays, Plus } from 'lucide-react';
 import { EmptyState } from '@/components/ui/states';
@@ -134,6 +134,7 @@ function ItemCard({
         e.dataTransfer.setData('text/plain', occurrence.key);
         drag.onDragStart(occurrence, dayKey);
       }}
+      aria-busy={drag.pendingKey === occurrence.key || undefined}
       onDragEnd={drag.onDragEnd}
       style={{ borderLeftColor: TYPE_ACCENT[occurrence.type] }}
       className={cn(
@@ -144,6 +145,7 @@ function ItemCard({
         done ? 'bg-surface-muted' : 'bg-surface',
         cancelled && 'opacity-60',
         drag.draggingKey === occurrence.key && 'opacity-40',
+        drag.pendingKey === occurrence.key && 'animate-pulse border-primary/50',
       )}
     >
       <div className="flex flex-wrap items-baseline gap-x-2">
@@ -280,6 +282,8 @@ function DayColumn({
  * one of them ends up out of step with the others.
  */
 interface DragApi {
+  /** The card that was just dropped and is being written. */
+  pendingKey: string | null;
   active: boolean;
   draggingKey: string | null;
   sourceDayKey: string | null;
@@ -353,6 +357,38 @@ export function AgendaBoard({
   const [overDayKey, setOverDayKey] = useState<string | null>(null);
   const [moving, setMoving] = useState(false);
   const [moved, setMoved] = useState<MovedNotice | null>(null);
+  // Optimistic placement: the dropped card shows on its new day at once,
+  // marked as saving, instead of sliding back and jumping a second later when
+  // the server round-trip lands. Cleared when fresh server data arrives (the
+  // card is then really there) or when the write fails (it goes back).
+  const [pendingMove, setPendingMove] = useState<{ key: string; from: string; to: string } | null>(null);
+  const lastAgenda = useRef(agenda);
+  useEffect(() => {
+    if (lastAgenda.current !== agenda) {
+      lastAgenda.current = agenda;
+      setPendingMove(null);
+    }
+  }, [agenda]);
+  const days = useMemo(() => {
+    if (pendingMove === null) return agenda.days;
+    const item = agenda.days
+      .find((d) => d.dayKey === pendingMove.from)
+      ?.items.find((i) => i.occurrence.key === pendingMove.key);
+    if (item === undefined) return agenda.days;
+    return agenda.days.map((d) =>
+      d.dayKey === pendingMove.from
+        ? { ...d, items: d.items.filter((i) => i.occurrence.key !== pendingMove.key) }
+        : d.dayKey === pendingMove.to
+          ? {
+              ...d,
+              items: [...d.items, item].sort((a, b) =>
+                (a.readerTime ?? '').localeCompare(b.readerTime ?? ''),
+              ),
+            }
+          : d,
+    );
+  }, [agenda.days, pendingMove]);
+  const overRef = useRef<string | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
 
   // The page is a server component, so a write is reflected by re-running it
@@ -370,9 +406,17 @@ export function AgendaBoard({
 
   const endDrag = useCallback((): void => {
     dragged.current = null;
+    overRef.current = null;
     setDraggingKey(null);
     setSourceDayKey(null);
     setOverDayKey(null);
+  }, []);
+
+  /** dragover fires every few ms; only a CHANGE of day may re-render. */
+  const overDay = useCallback((dayKey: string | null): void => {
+    if (overRef.current === dayKey) return;
+    overRef.current = dayKey;
+    setOverDayKey(dayKey);
   }, []);
 
   /**
@@ -392,13 +436,17 @@ export function AgendaBoard({
 
       setMoving(true);
       setMoveError(null);
+      setPendingMove({ key: payload.occurrence.key, from: payload.dayKey, to: targetDayKey });
       try {
         const result = await rescheduleOccurrenceToDay(getBrowserSupabase(), {
           occurrence: payload.occurrence,
           targetDayKey,
           readerTimeZone: span.readerTimeZone,
         });
-        if (result === null) return;
+        if (result === null) {
+          setPendingMove(null);
+          return;
+        }
         setMoved({
           occurrence: payload.occurrence,
           previous: result.previous,
@@ -416,6 +464,7 @@ export function AgendaBoard({
           key: payload.occurrence.key,
           error: err instanceof Error ? err.message : String(err),
         });
+        setPendingMove(null);
         setMoveError(t('agenda.move.failed'));
       } finally {
         setMoving(false);
@@ -456,16 +505,20 @@ export function AgendaBoard({
 
   const drag: DragApi = {
     active: draggingKey !== null,
+    pendingKey: pendingMove?.key ?? null,
     draggingKey,
     sourceDayKey,
     overDayKey,
     onDragStart: (occurrence, dayKey) => {
       dragged.current = { occurrence, dayKey };
-      setDraggingKey(occurrence.key);
-      setSourceDayKey(dayKey);
-      setMoved(null);
+      // Next frame, not now: see the note on the card's onDragStart.
+      requestAnimationFrame(() => {
+        setDraggingKey(occurrence.key);
+        setSourceDayKey(dayKey);
+        setMoved(null);
+      });
     },
-    onDragOverDay: setOverDayKey,
+    onDragOverDay: overDay,
     onDropOnDay: (dayKey) => void handleDrop(dayKey),
     onDragEnd: endDrag,
   };
@@ -553,8 +606,12 @@ export function AgendaBoard({
             'grid grid-cols-1 gap-4',
             span.view === 'week' && 'sm:grid-cols-2 lg:grid-cols-7',
           )}
+          onDragLeave={(e) => {
+            const next = e.relatedTarget;
+            if (!(next instanceof Node) || !e.currentTarget.contains(next)) overDay(null);
+          }}
         >
-          {agenda.days.map((day, dayIndex) => (
+          {days.map((day, dayIndex) => (
             <FadeIn key={day.dayKey} index={dayIndex}>
               <DayColumn
                 dayKey={day.dayKey}
