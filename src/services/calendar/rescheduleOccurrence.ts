@@ -4,6 +4,8 @@ import {
   upsertOverride,
 } from '@/data/calendarRepository';
 import { moveOccurrenceToDay } from '@/services/calendar/rescheduleService';
+import { parseCivilDayKey } from '@/services/time/civilDate';
+import { zonedCivilToUtcIso } from '@/services/time/timezone';
 import type { Supa } from '@/lib/supabase/types';
 import type { EventOccurrence } from '@/types/calendar';
 
@@ -115,4 +117,40 @@ export async function restoreOccurrenceTimes(
   times: OccurrenceTimes,
 ): Promise<void> {
   await writeTimes(supa, occurrence, times);
+}
+
+/**
+ * Moves an occurrence to a day AND a time on the reader's clock (the time-grid
+ * drag), keeping its length. `minutes` is minutes after the reader's midnight.
+ * A recurring occurrence becomes an override, exactly like a day move.
+ */
+export async function rescheduleOccurrenceToTime(
+  supa: Supa,
+  input: {
+    occurrence: EventOccurrence;
+    targetDayKey: string;
+    minutes: number;
+    readerTimeZone: string;
+  },
+): Promise<RescheduleResult | null> {
+  const day = parseCivilDayKey(input.targetDayKey);
+  if (day === null) return null;
+  const minutes = Math.max(0, Math.min(24 * 60 - 1, Math.round(input.minutes)));
+  const startsAt = zonedCivilToUtcIso(
+    { ...day, hour: Math.floor(minutes / 60), minute: minutes % 60, second: 0 },
+    input.readerTimeZone,
+  );
+  const length =
+    input.occurrence.ends_at === null
+      ? null
+      : Date.parse(input.occurrence.ends_at) - Date.parse(input.occurrence.starts_at);
+  const previous: OccurrenceTimes = { startsAt: input.occurrence.starts_at, endsAt: input.occurrence.ends_at };
+  const next: OccurrenceTimes = {
+    startsAt,
+    endsAt: length === null ? null : new Date(Date.parse(startsAt) + length).toISOString(),
+  };
+  if (next.startsAt === previous.startsAt) return null;
+  await writeTimes(supa, input.occurrence, next);
+  const deltaDays = Math.round((Date.parse(next.startsAt) - Date.parse(previous.startsAt)) / 86_400_000);
+  return { previous, next, deltaDays };
 }

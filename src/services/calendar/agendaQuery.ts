@@ -19,7 +19,11 @@ export interface AgendaQuery {
   assigneeId: string | null;
   /** One kind of item, or null for every kind. */
   type: CalendarEventType | null;
+  /** 'list' (cards per day) or 'time' (hour axis). */
+  layout: AgendaLayout;
 }
+
+export type AgendaLayout = 'list' | 'time';
 
 export type SearchParamValue = string | string[] | undefined;
 
@@ -53,6 +57,7 @@ export function parseAgendaQuery(params: Readonly<Record<string, SearchParamValu
     horseId: asId(first(params.horse)),
     assigneeId: asId(first(params.assignee)),
     type: asType(first(params.type)),
+    layout: first(params.layout) === 'time' ? 'time' : 'list',
   };
 }
 
@@ -64,6 +69,7 @@ export function agendaHref(basePath: string, query: AgendaQuery): string {
   if (query.horseId !== null) params.set('horse', query.horseId);
   if (query.assigneeId !== null) params.set('assignee', query.assigneeId);
   if (query.type !== null) params.set('type', query.type);
+  if (query.layout === 'time') params.set('layout', 'time');
   const search = params.toString();
   return search === '' ? basePath : `${basePath}?${search}`;
 }

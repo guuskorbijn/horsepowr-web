@@ -42,6 +42,12 @@ export const en = {
     closeMenu: 'Close menu',
   },
   agenda: {
+    layoutLabel: 'Layout',
+    layoutList: 'List',
+    layoutTime: 'Time',
+    timeGrid: {
+      hint: 'Drag to another day or time (snaps to 15 min). Double-click an empty slot to plan something there.',
+    },
     blockEditor: {
       title: 'Training structure',
       hint: 'Optional. Steady parts and intervals in order — for example 2 × 2:00 at 165–175 bpm with 1:00 walk between.',

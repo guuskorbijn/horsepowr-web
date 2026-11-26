@@ -37,6 +37,12 @@ export const nl = {
     closeMenu: 'Menu sluiten',
   },
   agenda: {
+    layoutLabel: 'Weergave',
+    layoutList: 'Lijst',
+    layoutTime: 'Tijd',
+    timeGrid: {
+      hint: 'Sleep naar een andere dag of tijd (op het kwartier). Dubbelklik op een lege plek om daar iets te plannen.',
+    },
     blockEditor: {
       title: 'Opbouw van de training',
       hint: 'Optioneel. Rustige delen en intervallen op volgorde — bijvoorbeeld 2 × 2:00 op 165–175 bpm met 1:00 stap ertussen.',

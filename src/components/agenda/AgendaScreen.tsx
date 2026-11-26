@@ -120,6 +120,7 @@ export async function AgendaScreen({
         locations={result.locations}
         assignees={result.assignees}
         templates={result.templates}
+        layout={query.layout}
       />
     </>
   );

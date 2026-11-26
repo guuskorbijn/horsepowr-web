@@ -95,6 +95,24 @@ export function AgendaToolbar({
           ) : null}
         </div>
 
+        <div className="flex items-center gap-2">
+        <div role="group" aria-label={t('agenda.layoutLabel')} className="flex rounded-md border border-line p-0.5">
+          {(['list', 'time'] as const).map((layout) => (
+            <Link
+              key={layout}
+              href={agendaHref(basePath, { ...query, layout })}
+              aria-current={query.layout === layout ? 'page' : undefined}
+              className={cn(
+                'flex h-10 min-w-[4rem] items-center justify-center rounded px-3 text-[13px] font-medium',
+                query.layout === layout
+                  ? 'bg-primary-soft text-primary'
+                  : 'text-text-secondary hover:bg-surface-muted hover:text-text-primary',
+              )}
+            >
+              {t(layout === 'list' ? 'agenda.layoutList' : 'agenda.layoutTime')}
+            </Link>
+          ))}
+        </div>
         <div role="group" aria-label={t('agenda.viewLabel')} className="flex rounded-md border border-line p-0.5">
           {AGENDA_VIEWS.map((view) => (
             <Link
@@ -111,6 +129,7 @@ export function AgendaToolbar({
               {view === 'day' ? t('agenda.viewDay') : t('agenda.viewWeek')}
             </Link>
           ))}
+        </div>
         </div>
       </div>
 

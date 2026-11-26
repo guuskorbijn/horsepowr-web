@@ -20,6 +20,7 @@ import {
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import {
   rescheduleOccurrenceToDay,
+  rescheduleOccurrenceToTime,
   restoreOccurrenceTimes,
   type OccurrenceTimes,
 } from '@/services/calendar/rescheduleOccurrence';
@@ -30,6 +31,9 @@ import { FadeIn } from '@/components/motion/FadeIn';
 import { TYPE_ACCENT } from '@/services/calendar/eventTypeAccent';
 import { useFlip } from '@/lib/useFlip';
 import { AgendaComposer } from '@/components/agenda/AgendaComposer';
+import { TimeGrid } from '@/components/agenda/TimeGrid';
+import { formatMinutes } from '@/services/calendar/timeGridLayout';
+import type { AgendaLayout } from '@/services/calendar/agendaQuery';
 import { applyQuickAdd, applyTemplate } from '@/services/calendar/prefill';
 import type { TrainingTemplate } from '@/data/templateRepository';
 import { useLive } from '@/components/live/LiveProvider';
@@ -310,6 +314,8 @@ interface MovedNotice {
   occurrence: EventOccurrence;
   previous: OccurrenceTimes;
   targetDayKey: string;
+  /** Set for a time-grid move: the new time on the reader's clock. */
+  time?: string;
 }
 
 /** What the form dialog is currently editing, or null when it is closed. */
@@ -332,6 +338,7 @@ export function AgendaBoard({
   locations,
   assignees,
   templates = [],
+  layout = 'list',
 }: {
   agenda: Agenda;
   horseNames: Record<string, string>;
@@ -350,6 +357,7 @@ export function AgendaBoard({
   locations: readonly LocationRow[];
   assignees: readonly ProfileRow[];
   templates?: readonly TrainingTemplate[];
+  layout?: AgendaLayout;
 }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -491,6 +499,47 @@ export function AgendaBoard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [endDrag, span.readerTimeZone],
   );
+
+  /** Time-grid drop: another day and/or time, snapped to the quarter hour. */
+  const handleTimeDrop = async (
+    occurrence: EventOccurrence,
+    fromDayKey: string,
+    targetDayKey: string,
+    minutes: number,
+  ): Promise<void> => {
+    setMoving(true);
+    setMoveError(null);
+    if (fromDayKey !== targetDayKey) setPendingMove({ key: occurrence.key, from: fromDayKey, to: targetDayKey });
+    try {
+      const result = await rescheduleOccurrenceToTime(getBrowserSupabase(), {
+        occurrence,
+        targetDayKey,
+        minutes,
+        readerTimeZone: span.readerTimeZone,
+      });
+      if (result === null) {
+        setPendingMove(null);
+        return;
+      }
+      setMoved({ occurrence, previous: result.previous, targetDayKey, time: formatMinutes(minutes) });
+      await notifyCalendarChange({
+        eventId: occurrence.event_id,
+        changedFields: ['starts_at'],
+        occurrenceStart: occurrence.original_start,
+        previousStartsAt: result.previous.startsAt,
+      });
+      refresh();
+    } catch (err) {
+      setPendingMove(null);
+      log.error('agenda: could not move item in time grid', {
+        key: occurrence.key,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      setMoveError(t('agenda.move.failed'));
+    } finally {
+      setMoving(false);
+    }
+  };
 
   const undoMove = useCallback(async (): Promise<void> => {
     if (moved === null) return;
@@ -673,7 +722,20 @@ export function AgendaBoard({
         <p className="mb-3 text-[12px] text-text-tertiary">{t('agenda.move.dragHint')}</p>
       ) : null}
 
-      {empty ? (
+      {layout === 'time' ? (
+        <TimeGrid
+          days={days}
+          readerTimeZone={span.readerTimeZone}
+          horseNames={horseNames}
+          canEdit={canEdit && !moving}
+          pendingKey={pendingMove?.key ?? null}
+          onOpen={setSelected}
+          onMove={(occ, from, to, minutes) => void handleTimeDrop(occ, from, to, minutes)}
+          onAdd={(dayKey, minutes) =>
+            openPrefilled(dayKey, (base) => ({ ...base, startTime: formatMinutes(minutes) }))
+          }
+        />
+      ) : empty ? (
         <EmptyState
           icon={<CalendarDays size={28} />}
           title={span.view === 'day' ? t('agenda.dayEmptyTitle') : t('agenda.weekEmptyTitle')}
@@ -728,6 +790,7 @@ export function AgendaBoard({
         >
           <p className="text-[13px] text-text-primary">
             {t('agenda.move.moved')} {formatDayKey(moved.targetDayKey)}
+            {moved.time ? ` · ${moved.time}` : ''}
           </p>
           <Button
             type="button"
