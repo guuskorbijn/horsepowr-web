@@ -21,6 +21,7 @@ import { getBrowserSupabase } from '@/lib/supabase/browser';
 import {
   rescheduleOccurrenceToDay,
   rescheduleOccurrenceToTime,
+  assignOccurrence,
   restoreOccurrenceTimes,
   type OccurrenceTimes,
 } from '@/services/calendar/rescheduleOccurrence';
@@ -32,6 +33,7 @@ import { TYPE_ACCENT } from '@/services/calendar/eventTypeAccent';
 import { useFlip } from '@/lib/useFlip';
 import { AgendaComposer } from '@/components/agenda/AgendaComposer';
 import { TimeGrid } from '@/components/agenda/TimeGrid';
+import { BulkBar } from '@/components/agenda/BulkBar';
 import { formatMinutes } from '@/services/calendar/timeGridLayout';
 import type { AgendaLayout } from '@/services/calendar/agendaQuery';
 import { applyQuickAdd, applyTemplate } from '@/services/calendar/prefill';
@@ -126,7 +128,15 @@ function ItemCard({
   return (
     <button
       type="button"
-      onClick={() => onOpen(occurrence)}
+      onClick={(e) => {
+        if (canEdit && (e.metaKey || e.ctrlKey || e.shiftKey)) {
+          e.preventDefault();
+          drag.onToggleSelect({ occurrence, dayKey });
+          return;
+        }
+        onOpen(occurrence);
+      }}
+      aria-pressed={drag.selected.has(occurrence.key) || undefined}
       // Dragging is a shortcut, never the only way: the same move is
       // available from the detail dialog's date field, which is what
       // keyboard and screen-reader users have. A drag-only
@@ -152,6 +162,7 @@ function ItemCard({
         drag.draggingKey === occurrence.key && 'opacity-40',
         drag.pendingKey === occurrence.key && 'animate-pulse border-primary/50',
         justChanged && 'hp-just-changed',
+        drag.selected.has(occurrence.key) && 'ring-2 ring-primary ring-offset-1 ring-offset-app',
       )}
     >
       <div className="flex flex-wrap items-baseline gap-x-2">
@@ -294,6 +305,9 @@ function DayColumn({
  * one of them ends up out of step with the others.
  */
 interface DragApi {
+  /** Multi-select: keys currently selected, and the modifier-click toggle. */
+  selected: ReadonlySet<string>;
+  onToggleSelect: (item: { occurrence: EventOccurrence; dayKey: string }) => void;
   /** A template chip is being dragged (copy onto a day, not a move). */
   templateActive: boolean;
   onTemplateDropOnDay: (dayKey: string) => void;
@@ -362,6 +376,38 @@ export function AgendaBoard({
   const { t } = useTranslation();
   const router = useRouter();
   const templateDrag = useRef<TrainingTemplate | null>(null);
+  const [selection, setSelection] = useState<Map<string, { occurrence: EventOccurrence; dayKey: string }>>(new Map());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  /** Applies one write per selected item; reports how many failed. */
+  const runBulk = async (
+    write: (entry: { occurrence: EventOccurrence; dayKey: string }) => Promise<unknown>,
+    changedFields: string[],
+  ): Promise<void> => {
+    setBulkBusy(true);
+    setMoveError(null);
+    let failed = 0;
+    for (const entry of selection.values()) {
+      try {
+        await write(entry);
+        await notifyCalendarChange({
+          eventId: entry.occurrence.event_id,
+          changedFields,
+          occurrenceStart: entry.occurrence.original_start,
+        });
+      } catch (err) {
+        failed += 1;
+        log.error('agenda: bulk action failed for an item', {
+          key: entry.occurrence.key,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    setBulkBusy(false);
+    setSelection(new Map());
+    if (failed > 0) setMoveError(t('agenda.bulk.partial').replace('{n}', String(failed)));
+    router.refresh();
+  };
   const [templateActive, setTemplateActive] = useState(false);
   const span = agenda.window;
   const empty = agenda.isEmpty;
@@ -429,20 +475,20 @@ export function AgendaBoard({
     return () => clearTimeout(timer);
   }, [moved]);
 
-  const endDrag = useCallback((): void => {
+  function endDrag(): void {
     dragged.current = null;
     overRef.current = null;
     setDraggingKey(null);
     setSourceDayKey(null);
     setOverDayKey(null);
-  }, []);
+  }
 
   /** dragover fires every few ms; only a CHANGE of day may re-render. */
-  const overDay = useCallback((dayKey: string | null): void => {
+  function overDay(dayKey: string | null): void {
     if (overRef.current === dayKey) return;
     overRef.current = dayKey;
     setOverDayKey(dayKey);
-  }, []);
+  }
 
   /**
    * Commit a drop.
@@ -570,6 +616,14 @@ export function AgendaBoard({
   }, [moved]);
 
   const drag: DragApi = {
+    selected: new Set(selection.keys()),
+    onToggleSelect: ({ occurrence, dayKey }) =>
+      setSelection((prev) => {
+        const next = new Map(prev);
+        if (next.has(occurrence.key)) next.delete(occurrence.key);
+        else next.set(occurrence.key, { occurrence, dayKey });
+        return next;
+      }),
     templateActive,
     onTemplateDropOnDay: (dayKey) => {
       const tpl = templateDrag.current;
@@ -622,7 +676,9 @@ export function AgendaBoard({
       const el = e.target as HTMLElement | null;
       if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === '/') {
+      if (e.key === 'Escape') {
+        setSelection(new Map());
+      } else if (e.key === '/') {
         e.preventDefault();
         document.getElementById('agenda-quick-add')?.focus();
       } else if (e.key.toLowerCase() === 'n') {
@@ -772,6 +828,29 @@ export function AgendaBoard({
           ))}
         </div>
       )}
+
+      {canEdit ? (
+        <BulkBar
+          count={selection.size}
+          people={assignees}
+          busy={bulkBusy}
+          onMove={(dayKey) =>
+            void runBulk(
+              ({ occurrence }) =>
+                rescheduleOccurrenceToDay(getBrowserSupabase(), {
+                  occurrence,
+                  targetDayKey: dayKey,
+                  readerTimeZone: span.readerTimeZone,
+                }),
+              ['starts_at'],
+            )
+          }
+          onAssign={(assigneeId) =>
+            void runBulk(({ occurrence }) => assignOccurrence(getBrowserSupabase(), occurrence, assigneeId), ['assignee_id'])
+          }
+          onClear={() => setSelection(new Map())}
+        />
+      ) : null}
 
       {/* Move feedback. Anchored to the grid rather than floating over the
           whole app: it is about the thing the user just dropped, and it

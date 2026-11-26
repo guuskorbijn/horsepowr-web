@@ -154,3 +154,30 @@ export async function rescheduleOccurrenceToTime(
   const deltaDays = Math.round((Date.parse(next.startsAt) - Date.parse(previous.startsAt)) / 86_400_000);
   return { previous, next, deltaDays };
 }
+
+/**
+ * Reassigns one occurrence (an override for a recurring item, the event
+ * itself otherwise). Used by bulk actions; the single-item dialog keeps its
+ * own merge-aware save.
+ */
+export async function assignOccurrence(
+  supa: Supa,
+  occurrence: EventOccurrence,
+  assigneeId: string | null,
+): Promise<void> {
+  if (occurrence.recurring && occurrence.original_start !== null) {
+    const existing = await getOverride(supa, occurrence.event_id, occurrence.original_start);
+    await upsertOverride(supa, occurrence.event_id, occurrence.original_start, {
+      cancelled: existing?.cancelled ?? false,
+      title: existing?.title ?? null,
+      notes: existing?.notes ?? null,
+      status: existing?.status ?? null,
+      targets: existing?.targets ?? null,
+      starts_at: existing?.starts_at ?? null,
+      ends_at: existing?.ends_at ?? null,
+      assignee_id: assigneeId,
+    });
+    return;
+  }
+  await updateEvent(supa, occurrence.event_id, { assignee_id: assigneeId });
+}

@@ -42,6 +42,17 @@ export const en = {
     closeMenu: 'Close menu',
   },
   agenda: {
+    bulk: {
+      selected: '{n} selected',
+      moveTo: 'Move to day',
+      move: 'Move',
+      assignTo: 'Assign to',
+      pickPerson: 'Choose person',
+      assign: 'Assign',
+      clear: 'Clear selection',
+      partial: '{n} item(s) could not be changed. The rest was saved.',
+      hint: 'Tip: ⌘/Ctrl-click to select several items.',
+    },
     layoutLabel: 'Layout',
     layoutList: 'List',
     layoutTime: 'Time',

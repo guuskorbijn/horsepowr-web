@@ -37,6 +37,17 @@ export const nl = {
     closeMenu: 'Menu sluiten',
   },
   agenda: {
+    bulk: {
+      selected: '{n} geselecteerd',
+      moveTo: 'Verplaats naar dag',
+      move: 'Verplaatsen',
+      assignTo: 'Toewijzen aan',
+      pickPerson: 'Kies persoon',
+      assign: 'Toewijzen',
+      clear: 'Selectie wissen',
+      partial: '{n} item(s) konden niet worden gewijzigd. De rest is opgeslagen.',
+      hint: 'Tip: ⌘/Ctrl-klik om meerdere items te selecteren.',
+    },
     layoutLabel: 'Weergave',
     layoutList: 'Lijst',
     layoutTime: 'Tijd',
